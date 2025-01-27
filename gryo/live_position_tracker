@@ -1,171 +1,175 @@
-function live_robot_animation_with_jointaxes()
+function live_robot_animation_fast_with_offsets_zero_heartpoint()
 
     %% 1) SET UP SERIAL PORT
-    portName = 'COM3';  % <-- Make sure this matches your actual Arduino COM port
+    portName = 'COM3';  % Change as needed (check Device Manager)
     baudRate = 115200;
-    
     s = serialport(portName, baudRate);
     configureTerminator(s, 'LF');
 
-    %% 2) FIGURE FOR PLOTTING
-    figure('Name','Live Robot Animation','NumberTitle','off');
+    %% 1A) CREATE FIGURE AND ENABLE KEY PRESS + ROTATION
+    f = figure('Name','Live Robot Animation','NumberTitle','off');
+    f.Position(3:4) = [1000 600];  % optional: widen figure
+    movegui(f,'center');
+    
+    % Enable the figure for user rotation
+    rotate3d(f, 'on');
+
+    % Assign a KeyPressFcn that sends 'z' to the Arduino if user presses Z
+    f.KeyPressFcn = @(src,evt) figureKeyPressCallback(src,evt,s);
+
     hold on;
     axis equal;
+    grid on;
     xlabel('X'); ylabel('Y'); zlabel('Z');
-    title('Live Robot Tip Position');
     view(3);
-    
-    % (Optional) If you want a reference plane:
-    % [X, Y] = meshgrid(0:40.2, 0:80.4);
-    % Z = zeros(size(X));
-    % surf(X, Y, Z, 'FaceAlpha', 0.5);
 
-    %% 3) ROBOT LINK CONSTANTS (example from your code)
-    l01A = 26.1; 
-    d01  = 0;  
-    l01B = 0;
-    l45A = 10.1; 
-    l45B = 11.5;
-    l56A = 1;    
-    d56potentiometer = 2; 
-    l56B = 1;
-    
-    % Base reference offset
+    %% 2) PLOT BASE FRAME & CREATE PLOT OBJECTS
     BRF_pt = [40.2 - 13.5, 21.0, 0];
-    
-    %% 4) MAIN LOOP TO READ ARDUINO GYRO ANGLES & UPDATE
-    for i = 1:1000  % or while(true), etc.
+    plotunitvector(BRF_pt, [1;0;0], [0;1;0], [0;0;1], 10);
+
+    % Single line for the robot's links
+    hRobot = plot3(nan, nan, nan, 'o-','LineWidth',2,'MarkerSize',6,...
+                   'Color','k','MarkerFaceColor','r');
+
+    % Quivers for the end-effector orientation
+    scale = 5;
+    effectorAxes.x = quiver3(0,0,0,0,0,0,'r','LineWidth',2);
+    effectorAxes.y = quiver3(0,0,0,0,0,0,'g','LineWidth',2);
+    effectorAxes.z = quiver3(0,0,0,0,0,0,'b','LineWidth',2);
+
+    axis([-100 100 -100 100 -50 100]);
+    hTitle = title('Initializing...');
+
+    %% 3) SET REFERENCE "HEART" POINT
+    % Change this to your desired location in the global (base) frame:
+    heartPt = [10, 10, 0];
+
+    % Plot a small marker or shape at the heart point for reference
+    plot3(heartPt(1), heartPt(2), heartPt(3), 'ms', 'MarkerSize',10, 'MarkerFaceColor','m');
+
+    %% 4) ROBOT LINK CONSTANTS / DH Setup
+    l01A = 26.1; d01 = 0;  l01B = 0;
+    l45A = 10.1; l45B = 11.5;
+    l56A = 1;    d56potentiometer = 2; l56B = 1;
+
+    %% 5) MAIN LOOP
+    for i = 1:2000
         
-        % ---- 4A) Read angles from serial (CSV line: "heading,roll,pitch,sysCal,gyroCal,accelCal,magCal") ----
-        % Example line from Arduino: "12.34,-5.67,1.23,3,3,2,3"
-        dataLine = readline(s); 
+        % 5A) Read & parse the CSV line: heading, roll, pitch, sysCal, gyroCal, accelCal, magCal
+        dataLine = readline(s);
         angleValues = str2double(strsplit(dataLine, ','));
+        if numel(angleValues) < 7, continue; end
         
-        % Expect 7 values in total
-        if numel(angleValues) < 7
-            % If malformed, skip
-            continue;  
-        end
-        
-        % Parse the 7 fields
         headingDeg = angleValues(1);
-        rollDeg    = angleValues(2);
-        pitchDeg   = angleValues(3);
+        rollDeg    = angleValues(3);
+        pitchDeg   = angleValues(2);
         sysCal     = angleValues(4);
         gyroCal    = angleValues(5);
         accelCal   = angleValues(6);
         magCal     = angleValues(7);
-        
-        % Convert from degrees to radians (for the first three)
+
+        % Convert to radians
         heading = deg2rad(headingDeg);
         roll    = deg2rad(rollDeg);
         pitch   = deg2rad(pitchDeg);
 
-        % ---- 4B) Map these BNO angles to your DH angles ----
-        % Example: heading -> theta2 (yaw), pitch -> theta3, roll -> theta4
-        theta2_yaw   = heading;
-        theta3_pitch = pitch;
+        % 5B) Offsets for L-shape
+        theta2_yaw   = heading;    % or heading + deg2rad(90) if you want
+        theta3_pitch = pitch;      % or pitch   + deg2rad(90)
         theta4_roll  = roll;
-        
-        % Example DH table (adapt as needed for your robot)
-        %           a       alpha   d                       theta
-        dhparams = [
-            0       0       (l01A + d01 + l01B)            0
-            0       pi/2    0                              theta2_yaw
-            0       pi/2    0                              theta3_pitch
-            0       0       0                              theta4_roll
-            l45A    0       l45B                           0
-            % If you have a last link:
-            %0       0       (l56A + d56potentiometer + l56B)  0
-        ];
-        
-        % ---- 4C) Compute partial transformations for each joint ----
-        n = size(dhparams, 1);
-        
-        % We'll store the transform from the *base* to each joint in partialT{i}
-        partialT = cell(n+1, 1);  
-        partialT{1} = eye(4);  % base frame is identity
 
+        % 5C) DH parameters
+        dhparams = [
+            0       0       (l01A + d01 + l01B)    0
+            0       pi/2    0                      theta2_yaw + pi/2
+            0       pi/2    0                      theta3_pitch + pi/4
+            0       0       0                      theta4_roll
+            l45A    0       l45B                   0
+            % Possibly more links...
+        ];
+
+        % Compute partial transforms
+        n = size(dhparams, 1);
+        partialT = cell(n+1,1);
+        partialT{1} = eye(4);
         for j = 1:n
             a     = dhparams(j,1);
             alpha = dhparams(j,2);
             d     = dhparams(j,3);
             theta = dhparams(j,4);
-            
             Tj = JointTransformation(a, alpha, d, theta);
             partialT{j+1} = partialT{j} * Tj;
         end
         
-        % partialT{end} is the final end-effector transform from the base frame.
-        
-        % ---- 4D) Collect all joint positions in 3D space ----
-        jointPositions = zeros(n+1, 3);
+        % 5D) Collect joint positions
+        jointPositions = zeros(n+1,3);
         for j = 1:n+1
-            % translation from partial transform
-            transVec = partialT{j}(1:3,4)'; 
-            % add base offset
-            jointPositions(j,:) = BRF_pt + transVec; 
+            transVec = partialT{j}(1:3,4)';
+            jointPositions(j,:) = BRF_pt + transVec;
         end
         
-        % ---- 4E) Clear & Redraw the entire robot scene ----
-        cla;  % clear the axes for simplicity
+        % Robot end-effector = last joint
+        p_ee = jointPositions(end,:);
 
-        % (Optional) Re-draw the plane
-        % surf(X, Y, zeros(size(X)), 'FaceAlpha', 0.5); hold on;
+        % 5E) Update the line object for the robot
+        set(hRobot, 'XData', jointPositions(:,1), ...
+                    'YData', jointPositions(:,2), ...
+                    'ZData', jointPositions(:,3));
 
-        % Plot the base coordinate system
-        plotunitvector(BRF_pt, [1 0 0], [0 1 0], [0 0 1]);
-        
-        % Plot the connected joints (a line from base -> J1 -> ... -> End-effector)
-        plot3(jointPositions(:,1), jointPositions(:,2), jointPositions(:,3), ...
-              'o-', 'LineWidth', 2, 'MarkerSize', 6, 'Color','k',...
-              'MarkerFaceColor','r');
-        
-        % ---- 4F) Plot orientation axes at each joint ----
-        for j = 1:n+1
-            p_j = jointPositions(j,:);
-            R_j = partialT{j}(1:3, 1:3);  % rotation matrix from base to joint j
-            
-            x_axis = R_j(:,1);
-            y_axis = R_j(:,2);
-            z_axis = R_j(:,3);
+        % End-effector orientation
+        R_ee = partialT{end}(1:3,1:3);
+        updateQuiver3(effectorAxes.x, p_ee, R_ee(:,1), scale);
+        updateQuiver3(effectorAxes.y, p_ee, R_ee(:,2), scale);
+        updateQuiver3(effectorAxes.z, p_ee, R_ee(:,3), scale);
 
-            plotunitvector(p_j, x_axis, y_axis, z_axis);
-        end
-        
-        % ---- 4G) Update figure title with angles + calibration status ----
-        titleStr = sprintf('Heading=%.1f°, Roll=%.1f°, Pitch=%.1f° | Cal: sys=%d, gyro=%d, accel=%d, mag=%d',...
-                           headingDeg, rollDeg, pitchDeg,...
-                           sysCal, gyroCal, accelCal, magCal);
-        title(titleStr);
-        
-        axis equal;
-        axis([-100 100 -100 100 -50 100]);  % Adjust as needed
-        xlabel('X'); ylabel('Y'); zlabel('Z');
-        drawnow;
+        % 5F) Compute tip relative to heart
+        tipCoordRel = p_ee - heartPt;  % [dx, dy, dz]
+
+        % Update figure title with angles, calibration, and tip offset
+        set(hTitle, 'String', sprintf( ...
+            ['Heading=%.1f°, Roll=%.1f°, Pitch=%.1f°  |  Cal: %d,%d,%d,%d\n' ...
+             'Tip wrt Heart = (%.1f, %.1f, %.1f)'], ...
+            headingDeg, rollDeg, pitchDeg, ...
+            sysCal, gyroCal, accelCal, magCal, ...
+            tipCoordRel(1), tipCoordRel(2), tipCoordRel(3)));
+
+        % 5G) Draw with minimal overhead, but still interactive
+        drawnow limitrate
     end
-    
-    % Close the serial port after the loop:
-    clear s;  % or delete(s);
 
+    % Close serial
+    clear s;
 end
 
-%% --- DH Transformation Matrix ---
+%% --- Figure KeyPress callback: if user presses 'z', send 'z' to Arduino ---
+function figureKeyPressCallback(~, evt, serialObj)
+    if strcmpi(evt.Key, 'z')
+        % Send 'z' over serial to Arduino to trigger zeroing
+        writeline(serialObj, 'z');
+        disp('Sent "z" to Arduino for zeroing the BNO055.');
+    end
+end
+
+%% --- DH Transformation ---
 function T = JointTransformation(a, alpha, d, theta)
-    T = [ cos(theta),             -sin(theta)*cos(alpha),    sin(theta)*sin(alpha),   a*cos(theta);
-          sin(theta),             cos(theta)*cos(alpha),     -cos(theta)*sin(alpha),  a*sin(theta);
-          0,                      sin(alpha),                cos(alpha),              d;
-          0,                      0,                         0,                       1];
+    T = [ cos(theta), -sin(theta)*cos(alpha),  sin(theta)*sin(alpha),  a*cos(theta);
+          sin(theta),  cos(theta)*cos(alpha), -cos(theta)*sin(alpha),  a*sin(theta);
+          0,           sin(alpha),            cos(alpha),              d;
+          0,           0,                     0,                       1];
 end
 
-%% --- Plot unit vectors from a given point ---
-function plotunitvector(pt, ux, uy, uz)
-    % scale them for visibility
-    scale = 5; 
-    quiver3(pt(1), pt(2), pt(3), scale*ux(1), scale*ux(2), scale*ux(3), ...
-            'Color','r','LineWidth',1.5);
-    quiver3(pt(1), pt(2), pt(3), scale*uy(1), scale*uy(2), scale*uy(3), ...
-            'Color','g','LineWidth',1.5);
-    quiver3(pt(1), pt(2), pt(3), scale*uz(1), scale*uz(2), scale*uz(3), ...
-            'Color','b','LineWidth',1.5);
+%% --- Plot static coordinate frame vectors ---
+function plotunitvector(pt, ux, uy, uz, scale)
+    if nargin<5, scale=5; end
+    quiver3(pt(1),pt(2),pt(3), scale*ux(1),scale*ux(2),scale*ux(3), 'r','LineWidth',2);
+    quiver3(pt(1),pt(2),pt(3), scale*uy(1),scale*uy(2),scale*uy(3), 'g','LineWidth',2);
+    quiver3(pt(1),pt(2),pt(3), scale*uz(1),scale*uz(2),scale*uz(3), 'b','LineWidth',2);
+end
+
+%% --- Update an existing quiver3 handle ---
+function updateQuiver3(h, origin, direction, scale)
+    set(h, 'XData', origin(1), 'YData', origin(2), 'ZData', origin(3), ...
+           'UData', scale*direction(1), ...
+           'VData', scale*direction(2), ...
+           'WData', scale*direction(3));
 end
