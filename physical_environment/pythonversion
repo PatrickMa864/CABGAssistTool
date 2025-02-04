@@ -1,0 +1,116 @@
+import numpy as np
+
+#workspace  40.2 & 80.4 cm
+
+################# INPUTS #################
+# Potentiometer
+d56potentiometer = 2
+# Gyro
+theta2_yaw = 0 * np.pi / 180
+theta3_pitch = -45 * np.pi / 180
+theta4_roll = 0 * np.pi / 180
+# POI position, given from camera script (z value)
+POI_pt = [20, 60, 10]
+# Fixed
+# BRF_pt = [40.2-13.5, 21.0, 0]  # 40.2-13.5 x offset
+BRF_pt = [20, 20, 0]
+#fixed lengths
+#l01A=26.1;d01=0;l01B=0;l45A=10.7;1;l45B=11.5;l56A=2;d56potentiometer=2;l56B=5;
+#l01A=10.1;d01=0;l01B=0;l45A=2.7;1;l45B=2.5;l56A=1;d56potentiometer=1;l56B=1;
+###########################################
+
+
+################# FUNCTION CALLS #################
+def JointTransformation(a, alpha, d, theta):
+    T = np.array([
+        [np.cos(theta), -np.sin(theta)*np.cos(alpha), np.sin(theta)*np.sin(alpha), a*np.cos(theta)],
+        [np.sin(theta), np.cos(theta)*np.cos(alpha), -np.cos(theta)*np.sin(alpha), a*np.sin(theta)],
+        [0, np.sin(alpha), np.cos(alpha), d],
+        [0, 0, 0, 1]
+    ])
+    return T
+
+def jointstoBRF(d56potentiometer, theta2_yaw, theta3_pitch, theta4_roll):
+    l01A = 26.1
+    d01 = 0
+    l01B = 0
+    l45A = 10.7
+    l45B = 11.5
+    l56A = 2
+    l56B = 5
+
+    dhparams = np.array([
+        [0, 0, l01A+d01+l01B, 0],
+        [0, np.pi/2, 0, theta2_yaw+np.pi/2],
+        [0, np.pi/2, 0, theta3_pitch+np.pi/2],
+        [0, 0, 0, theta4_roll],
+        [l45A, 0, 0, 0],
+        [0, 0, l45B, 0],
+        [0, 0, l56A+d56potentiometer+l56B, 0]
+    ])
+
+    T01 = JointTransformation(dhparams[0,0], dhparams[0,1], dhparams[0,2], dhparams[0,3])
+    T12 = JointTransformation(dhparams[1,0], dhparams[1,1], dhparams[1,2], dhparams[1,3])
+    T23 = JointTransformation(dhparams[2,0], dhparams[2,1], dhparams[2,2], dhparams[2,3])
+    T34 = JointTransformation(dhparams[3,0], dhparams[3,1], dhparams[3,2], dhparams[3,3])
+    T45 = JointTransformation(dhparams[4,0], dhparams[4,1], dhparams[4,2], dhparams[4,3])
+    T56 = JointTransformation(dhparams[5,0], dhparams[5,1], dhparams[5,2], dhparams[5,3])
+    T67 = JointTransformation(dhparams[6,0], dhparams[6,1], dhparams[6,2], dhparams[6,3])
+
+    T04 = np.matmul(np.matmul(np.matmul(T01, T12), T23), T34)  # gyro p3
+    T05 = np.matmul(T04, T45)
+    T06 = np.matmul(T05, T56)
+    T07 = np.matmul(T06, T67)  # tool tip to base T07
+    print("T07\n",T07,"\n")
+
+    return T04, T05, T06, T07
+
+#step 1 is to find tool tip wrt to BRF
+#step 2 is to define a transformation matrix between BRF & POI
+def current_tooltip_pt(d56potentiometer, theta2_yaw, theta3_pitch, theta4_roll, BRF_pt, POI_pt):
+    # Fixed lengths
+    l01A = 26.1
+    d01 = 0
+    l01B = 0
+    l45A = 10.7
+    l45B = 11.5
+    l56A = 2
+    l56B = 5
+
+    # Get wrist (joint4) to tooltip(joint7) in terms of the BRF
+    T04, T05, T06, T07 = jointstoBRF(d56potentiometer, theta2_yaw, theta3_pitch, theta4_roll)
+
+    # Define transformation matrix between BRF and POI
+    # Transform tooltip in terms of POI
+    TBRFPOI = np.array([
+        [1, 0, 0, POI_pt[0] - BRF_pt[0]],
+        [0, 1, 0, POI_pt[1] - BRF_pt[1]],
+        [0, 0, 1, POI_pt[2] - BRF_pt[2]],
+        [0, 0, 0, 1]
+    ])
+
+    tooltipwrtPOI_pt = np.dot(TBRFPOI, np.array([T07[0,3], T07[1,3], T07[2,3], 1]))
+    tooltipwrtPOI_pt = tooltipwrtPOI_pt[:3]  # Take only the first 3 elements
+
+    return tooltipwrtPOI_pt
+
+def distance3D(p1, p2):
+    return np.sqrt(np.sum((np.array(p2) - np.array(p1))**2))
+
+def unitVectorBetweenPoints(p1, p2):
+    v = np.array(p2) - np.array(p1)
+    return v / np.linalg.norm(v)
+##########################################
+
+# the euclidean distance between the tooltip and POI 
+tooltipwrtPOI_pt=current_tooltip_pt(d56potentiometer,theta2_yaw,theta3_pitch,theta4_roll,BRF_pt,POI_pt)
+lPOItotool=distance3D(tooltipwrtPOI_pt,POI_pt)
+
+desiredoffsetfromPOI=10
+unitfromPOI=unitVectorBetweenPoints(POI_pt,tooltipwrtPOI_pt)
+desiredtool_pt=POI_pt+desiredoffsetfromPOI*unitfromPOI;#multiply unit vector by constant to get a different desired point
+# ltooltodesired=distance3D(tooltipwrtPOI_pt,desiredtool_pt)
+ltooltodesired=lPOItotool-desiredoffsetfromPOI #subtract whatever distance to be maintained
+
+print(ltooltodesired)
+print(tooltipwrtPOI_pt)
