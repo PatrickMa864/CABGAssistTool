@@ -1,0 +1,243 @@
+import serial
+import numpy as np
+import math
+import time
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+def live_robot_animation_fast_with_offsets_zero_heartpoint():
+    """
+    A Python translation of the MATLAB function to:
+    1) Connect to an Arduino via serial.
+    2) Read angles and calibration info.
+    3) Compute forward kinematics via DH parameters.
+    4) Plot and animate the robot's motion in 3D in real-time.
+    5) Press 'z' in the figure window to send 'z' to Arduino (for zeroing).
+    """
+
+    # -----------------------------
+    # 1) SET UP SERIAL PORT
+    # -----------------------------
+    portName = 'COM3'  # Update to your serial port
+    baudRate = 115200
+    try:
+        ser = serial.Serial(portName, baudRate, timeout=1)
+        time.sleep(2)  # Allow Arduino to reset
+    except Exception as e:
+        print(f"Error opening serial port {portName}: {e}")
+        return
+
+    # Clear any junk in the buffer
+    ser.reset_input_buffer()
+
+    # -----------------------------
+    # 1A) CREATE FIGURE
+    # -----------------------------
+    fig = plt.figure("Live Robot Animation", figsize=(10,6))
+    fig.canvas.manager.set_window_title("Live Robot Animation")# Some IDEs may ignore
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_box_aspect((1,1,1))  # Make aspect ratio equal along all axes
+
+    # Add labels
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    # Set initial view and axis limits
+    ax.view_init(elev=20., azim=-35)
+    ax.set_xlim(-100, 100)
+    ax.set_ylim(-100, 100)
+    ax.set_zlim(-50, 100)
+    plt.title("Initializing...")
+
+    # -----------------------------
+    # Key press callback
+    # -----------------------------
+    def on_key(event):
+        """If the user presses 'z', send 'z' to Arduino over serial."""
+        if event.key.lower() == 'z':
+            ser.write(b'z\n')
+            print('Sent "z" to Arduino for zeroing the BNO055.')
+
+    fig.canvas.mpl_connect('key_press_event', on_key)
+
+    # -----------------------------
+    # 2) PLOT BASE FRAME
+    # -----------------------------
+    BRF_pt = np.array([40.2 - 13.5, 21.0, 0])  # base reference frame origin
+    plotunitvector(ax, BRF_pt, np.array([1,0,0]), 
+                          np.array([0,1,0]), 
+                          np.array([0,0,1]), scale=10)
+
+    # -----------------------------
+    # Create a line object for the robot links
+    # 'o-' style means circular markers with a solid line
+    # We'll update the data in the animation loop
+    # -----------------------------
+    line_robot, = ax.plot([], [], [], 'o-', linewidth=2, markersize=6,
+                          color='k', markerfacecolor='r')
+
+    # -----------------------------
+    # 3) QUIVERS FOR END-EFFECTOR ORIENTATION
+    # We'll store them in a dictionary for easy update
+    # -----------------------------
+    scale = 5
+    effector_axes = {
+        'x': ax.quiver(0,0,0, 0,0,0, color='r', linewidth=2),
+        'y': ax.quiver(0,0,0, 0,0,0, color='g', linewidth=2),
+        'z': ax.quiver(0,0,0, 0,0,0, color='b', linewidth=2),
+    }
+
+    # -----------------------------
+    # 4) SET REFERENCE "HEART" POINT
+    # -----------------------------
+    heartPt = np.array([10, 10, 0])
+    ax.plot([heartPt[0]], [heartPt[1]], [heartPt[2]],
+            'ms', markersize=10, markerfacecolor='m')
+
+    # -----------------------------
+    # 5) ROBOT LINK CONSTANTS (DH setup)
+    # -----------------------------
+    l01A = 26.1
+    d01  = 0
+    l01B = 0
+
+    l45A = 10.1
+    l45B = 11.5
+
+    l56A = 1
+    d56potentiometer = 2
+    l56B = 1
+
+    # -----------------------------
+    # 6) MAIN LOOP
+    # -----------------------------
+    n_iterations = 2000
+    for i in range(n_iterations):
+        # 6A) Read one line from serial
+        # Expected format: heading, roll, pitch, sysCal, gyroCal, accelCal, magCal
+        try:
+            data_line = ser.readline().decode('utf-8').strip()
+            angle_values = data_line.split(',')
+            if len(angle_values) < 7:
+                continue
+            angle_values = list(map(float, angle_values))
+        except:
+            continue
+
+        headingDeg, pitchDeg, rollDeg, sysCal, gyroCal, accelCal, magCal = angle_values
+
+        # Convert to radians
+        heading = math.radians(headingDeg)
+        roll    = math.radians(rollDeg)
+        pitch   = math.radians(pitchDeg)
+
+        # 6B) Offsets for L-shape (as in your MATLAB code)
+        theta2_yaw   = heading       # or heading + deg2rad(90)
+        theta3_pitch = pitch         # or pitch   + deg2rad(90)
+        theta4_roll  = roll
+
+        # 6C) Build DH parameters array
+        # [a, alpha, d, theta]
+        dhparams = np.array([
+            [0,       0,           (l01A + d01 + l01B), 0],
+            [0,       np.pi/2,     0,                   theta2_yaw + np.pi/2],
+            [0,       np.pi/2,     0,                   theta3_pitch + np.pi/4],
+            [0,       0,           0,                   theta4_roll],
+            [l45A,    0,           l45B,                0],
+            # Extend if you have more links...
+        ])
+
+        # 6D) Compute partial transforms
+        partialT = [np.eye(4)]
+        for row in dhparams:
+            a, alpha, d, theta = row
+            Tj = JointTransformation(a, alpha, d, theta)
+            partialT.append(partialT[-1].dot(Tj))
+
+        # 6E) Collect joint positions
+        joint_positions = []
+        for T in partialT:
+            trans_vec = T[0:3, 3]
+            # Add base offset BRF_pt
+            joint_positions.append(BRF_pt + trans_vec)
+
+        joint_positions = np.array(joint_positions)
+
+        # Robot end-effector = last joint
+        p_ee = joint_positions[-1]
+
+        # 6F) Update the line object
+        line_robot.set_data(joint_positions[:,0], joint_positions[:,1])
+        line_robot.set_3d_properties(joint_positions[:,2])
+
+        # End-effector orientation
+        R_ee = partialT[-1][0:3, 0:3]
+        updateQuiver3(effector_axes['x'], p_ee, R_ee[:,0], scale)
+        updateQuiver3(effector_axes['y'], p_ee, R_ee[:,1], scale)
+        updateQuiver3(effector_axes['z'], p_ee, R_ee[:,2], scale)
+
+        # 6G) Compute tip relative to heart
+        tipCoordRel = p_ee - heartPt
+
+        # Update figure title
+        new_title = (
+            f"Heading={headingDeg:.1f}°, Roll={rollDeg:.1f}°, Pitch={pitchDeg:.1f}°  |  "
+            f"Cal: {int(sysCal)},{int(gyroCal)},{int(accelCal)},{int(magCal)}\n"
+            f"Tip wrt Heart = ({tipCoordRel[0]:.1f}, {tipCoordRel[1]:.1f}, {tipCoordRel[2]:.1f})"
+        )
+        ax.set_title(new_title)
+
+        # 6H) Update the figure
+        plt.draw()
+        plt.pause(0.001)
+
+    # Close serial when done
+    ser.close()
+    print("Done. Closed serial port.")
+
+
+def JointTransformation(a, alpha, d, theta):
+    """
+    Equivalent to the MATLAB DH transform:
+    T = [ cos(theta), -sin(theta)*cos(alpha),  sin(theta)*sin(alpha),  a*cos(theta);
+          sin(theta),  cos(theta)*cos(alpha), -cos(theta)*sin(alpha),  a*sin(theta);
+          0,           sin(alpha),            cos(alpha),              d;
+          0,           0,                     0,                       1];
+    """
+    return np.array([
+        [ np.cos(theta), -np.sin(theta)*np.cos(alpha),  np.sin(theta)*np.sin(alpha), a*np.cos(theta) ],
+        [ np.sin(theta),  np.cos(theta)*np.cos(alpha), -np.cos(theta)*np.sin(alpha), a*np.sin(theta) ],
+        [ 0,              np.sin(alpha),               np.cos(alpha),               d                ],
+        [ 0,              0,                           0,                           1                ]
+    ], dtype=float)
+
+
+def plotunitvector(ax, pt, ux, uy, uz, scale=5):
+    """
+    Plot static coordinate frame vectors (quiver3 style).
+    pt is the origin point in 3D (x, y, z).
+    ux, uy, uz are the unit vectors for x, y, z directions.
+    """
+    x0, y0, z0 = pt
+    ax.quiver(x0, y0, z0, scale*ux[0], scale*ux[1], scale*ux[2], color='r', linewidth=2)
+    ax.quiver(x0, y0, z0, scale*uy[0], scale*uy[1], scale*uy[2], color='g', linewidth=2)
+    ax.quiver(x0, y0, z0, scale*uz[0], scale*uz[1], scale*uz[2], color='b', linewidth=2)
+
+
+def updateQuiver3(quiver, origin, direction, scale=5):
+    """
+    Update an existing quiver (in matplotlib there's no direct "set_*" API for
+    quivers, so we can remove and re-draw or manipulate internal _segments3d).
+    Here we do a simple trick of re-assigning its segments directly.
+    """
+    # quiver is a Line3DCollection object
+    # We re-create the 3D segment for it:
+    x0, y0, z0 = origin
+    dx, dy, dz = scale*direction
+    # Quiver in matplotlib is stored as segments in 3D:
+    quiver.set_segments([np.array([[x0, y0, z0],[x0+dx, y0+dy, z0+dz]])])
+
+
+if __name__ == "__main__":
+    live_robot_animation_fast_with_offsets_zero_heartpoint()
