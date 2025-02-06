@@ -21,13 +21,16 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 float headingOffset = 0.0;
 float rollOffset    = 0.0;
 float pitchOffset   = 0.0;
+// Variables to store voltage and wiper position
+float voltage;
+float wiperPosition;
 
 // ---------------------- Potentiometer Setup ----------------------
 const int potPin = A1;  // Analog input pin for the linear potentiometer
 
 void setup() {
   // Start Serial at 115200
-  Serial.begin(115200);
+  Serial.begin(115200); //baud rate must match in serial monitor
   while (!Serial) {
     // Needed on some boards to wait for Serial
   }
@@ -96,7 +99,10 @@ void loop() {
   // ---------------------- Read Potentiometer ----------------------
   // (raw value 0..1023). You can scale to mm/voltage if desired
   int potValue = analogRead(potPin);
-
+  // Convert the analog reading (0 - 1023) to voltage (0 - 5V)
+  voltage = potValue * (3.3 / 1023.0) *1.5; //output when input voltage is 3.3 yiels position of 2/3
+ //Calculate wiper position as a percentage
+ wiperPosition = 10 * (voltage / 3.3) ;//scale in terms of length
   // ---------------------- Print CSV Output ----------------------
   // Format: heading,roll,pitch,sys,gyro,accel,mag,potValue
   Serial.print(heading);
@@ -113,7 +119,7 @@ void loop() {
   Serial.print(",");
   Serial.print(magCal);
   Serial.print(",");
-  Serial.println(potValue);
+  Serial.println(wiperPosition);
 
   delay(100);  // 10 Hz update (adjust as needed)
 }
