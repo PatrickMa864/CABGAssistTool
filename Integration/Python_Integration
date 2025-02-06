@@ -102,8 +102,7 @@ def live_robot_animation_fast_with_offsets_zero_heartpoint():
     l45B = 11.5
 
     # Example for prismatic joint scaling
-    # potValue: 0..1023 => want ~0..50 mm? Then potScale= (50 mm)/(1023)
-    potScale = 0.05  # mm per count if we want 0..51 mm
+    potScale = 1 # mm per count if we want 0..51 mm 3.3v 
     # or set potScale= 0.1, 0.2, etc. to match your real hardware
 
     # -----------------------------
