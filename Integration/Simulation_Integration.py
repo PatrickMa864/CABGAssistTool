@@ -45,9 +45,9 @@ def live_robot_animation_fast_with_offsets_zero_heartpoint():
 
     # Set initial view and axis limits
     ax.view_init(elev=20., azim=-35)
-    ax.set_xlim(-100, 100)
-    ax.set_ylim(-100, 100)
-    ax.set_zlim(-50, 100)
+    ax.set_ylim(0, 80.4)  
+    ax.set_xlim(0, 40.2)  
+    ax.set_zlim(0, 40.2)
     plt.title("Initializing...")
 
     # -----------------------------
@@ -63,10 +63,10 @@ def live_robot_animation_fast_with_offsets_zero_heartpoint():
     # -----------------------------
     # 2) PLOT BASE FRAME
     # -----------------------------
-    BRF_pt = np.array([40.2 - 13.5, 21.0, 0])  # base reference
+    BRF_pt = np.array([11.875, 31.4, 0])  # base reference
     plotunitvector(ax, BRF_pt, np.array([1,0,0]),
                           np.array([0,1,0]),
-                          np.array([0,0,1]), scale=10)
+                          np.array([0,0,1]), scale=3)
 
     # -----------------------------
     # Robot link line object
@@ -87,19 +87,20 @@ def live_robot_animation_fast_with_offsets_zero_heartpoint():
     # -----------------------------
     # 4) SET REFERENCE "HEART" POINT
     # -----------------------------
-    heartPt = np.array([10, 10, 0])
+    heartPt = np.array([30.1625, 31.4, 0])
     ax.plot([heartPt[0]], [heartPt[1]], [heartPt[2]],
-            'ms', markersize=10, markerfacecolor='m')
+            'ms', markersize=3, markerfacecolor='m')
 
     # -----------------------------
     # 5) ROBOT LINK CONSTANTS (DH setup)
     # -----------------------------
-    l01A = 26.1
-    d01  = 0
-    l01B = 0
-
-    l45A = 10.1
-    l45B = 11.5
+l01A = 26.1+1.13#to gyro
+d01  = 0
+l01B = 0
+l45A = 9.1 #7.5+1.6
+l45B = 0#this may need to be updated
+l56A=2
+l56B=20.5#tool tip
 
     # Example for prismatic joint scaling
     potScale = 1 # mm per count if we want 0..51 mm 3.3v 
@@ -140,17 +141,14 @@ def live_robot_animation_fast_with_offsets_zero_heartpoint():
         # [a, alpha, d, theta]
         dhparams = [
             [0,       0,         (l01A + d01 + l01B),   0],
-            [0,       np.pi/2,   0,                     theta2_yaw + np.pi/2],
-            [0,       np.pi/2,   0,                     theta3_pitch + np.pi/4],
+            [0,       np.pi/2,   0,                     theta2_yaw],
+            [0,       np.pi/2,   0,                     theta3_pitch + (np.pi)/2],
             [0,       0,         0,                     theta4_roll],
-            [l45A,    0,         l45B,                  0],
+            [l45A,    0,         0,                  0],
+            [0, 0, l45B,0],
+            [0, 0, potExtension+l56A+l56B, 0]
         ]
 
-        # Now add the final prismatic link
-        # Assume it extends along the Z-axis of the previous frame
-        # So we can represent it as: a=0, alpha=0, d=potExtension, theta=0
-        # (Adjust alpha if your prismatic axis is different)
-        dhparams.append([0, 0, potExtension, 0])
 
         # 1) Compute partial transforms
         partialT = [np.eye(4)]
