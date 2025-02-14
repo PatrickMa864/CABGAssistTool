@@ -1,0 +1,211 @@
+import cv2
+import numpy as np
+import serial
+import time
+
+
+#real-world diameter of the circle (in mm).
+KNOWN_DIAMETER_MM = 30
+
+# Known distance for calibration (mm), e.g., 45 cm => 450 mm
+CALIBRATION_DISTANCE_MM = 300.0
+
+# Camera index
+CAMERA_INDEX = 0
+
+FRAME_WIDTH = 1280
+FRAME_HEIGHT = 720
+FRAME_RATE = 100
+
+# HSV color range(s) for DARK BLUE (example)
+LOWER_COLOR_1 = np.array([90, 150, 50])
+UPPER_COLOR_1 = np.array([110, 255, 255])
+LOWER_COLOR_2 = np.array([110, 150, 50])
+UPPER_COLOR_2 = np.array([130, 255, 255])
+
+KERNEL = np.ones((5, 5), np.uint8)
+
+# Offsets in cm (world reference frame)
+WRF_OFFSET_X = 5.0
+WRF_OFFSET_Y = 5.0
+WRF_OFFSET_Z = 5.0
+
+# --------- NEW: Serial Port Info (adjust as needed) ----------
+SERIAL_PORT = 'COM12'  # or '/dev/ttyUSB0' on Linux, etc.
+BAUD_RATE = 9600
+
+def main():
+    # 1) Open camera
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    if not cap.isOpened():
+        print(f"[ERROR] Failed to open camera at index {CAMERA_INDEX}.")
+        return
+
+    # Set camera properties
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+    cap.set(cv2.CAP_PROP_FPS, FRAME_RATE)
+
+    # 2) Open Serial connection to Arduino
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.1)
+        time.sleep(2)  # wait a moment for the Arduino to reset
+        print(f"[INFO] Serial connected on {SERIAL_PORT} at {BAUD_RATE} baud.")
+    except Exception as e:
+        print(f"[ERROR] Could not open serial port {SERIAL_PORT}: {e}")
+        return
+
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f"[INFO] Camera settings: {int(width)}x{int(height)} at {int(fps)} FPS")
+    print("[INFO] Press 'c' to calibrate (ensure circle is at ~45 cm).")
+    print("[INFO] Press 'q' to quit.")
+
+    # We'll store the camera's focal length here after calibration
+    focal_length = None
+
+    # Approximate principal point
+    cx = width / 2.0
+    cy = height / 2.0
+
+    last_cam_coords = None
+    last_world_coords = None
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print("[ERROR] Failed to grab frame.")
+            break
+
+        # Convert BGR to HSV
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        # Create a mask for blue
+        mask1 = cv2.inRange(hsv, LOWER_COLOR_1, UPPER_COLOR_1)
+        mask2 = cv2.inRange(hsv, LOWER_COLOR_2, UPPER_COLOR_2)
+        mask = mask1 + mask2
+
+        mask = cv2.erode(mask, KERNEL, iterations=1)
+        mask = cv2.dilate(mask, KERNEL, iterations=1)
+
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        found_coords = False
+
+        if contours:
+            largest_contour = max(contours, key=cv2.contourArea)
+            if len(largest_contour) >= 5:
+                ellipse = cv2.fitEllipse(largest_contour)
+                (x_center, y_center), (major_axis, minor_axis), angle = ellipse
+
+                # Draw the ellipse & center
+                cv2.ellipse(frame, ellipse, (0, 255, 0), 2)
+                center = (int(x_center), int(y_center))
+                cv2.circle(frame, center, 3, (0, 255, 0), -1)
+
+                # Estimate "diameter" in pixels as the average of major and minor axes
+                diameter_pixels = 0.5 * (major_axis + minor_axis)
+
+                # Filter out very small detections
+                if diameter_pixels > 10:
+                    if focal_length is not None:
+                        # -- Using pinhole model to find real-world Y in cm --
+
+                        # distance_mm => how far the circle is from the camera lens
+                        distance_mm = (KNOWN_DIAMETER_MM * focal_length) / diameter_pixels
+                        # Convert to cm
+                        distance_cm = distance_mm / 10.0
+
+                        # (x_shifted, y_shifted) in image coords relative to center
+                        x_shifted = (x_center - cx)
+                        y_shifted = y_shifted = (cy - y_center); #gives positive values for upside of center
+
+                        # X_mm, Y_mm => real-world offsets in the camera plane
+                        X_mm = (x_shifted / focal_length) * distance_mm
+                        Y_mm = (y_shifted / focal_length) * distance_mm
+
+                        # Convert mm -> cm
+                        X_cm_cam = X_mm / 10.0
+                        Y_cm_cam = Y_mm / 10.0
+                        Z_cm_cam = distance_cm  # forward distance from camera
+
+                        # Apply world reference frame offsets
+                        X_wrf = X_cm_cam + WRF_OFFSET_X
+                        Y_wrf = Y_cm_cam + WRF_OFFSET_Y
+                        Z_wrf = Z_cm_cam + WRF_OFFSET_Z
+
+                        # Save these for on-screen text
+                        last_cam_coords = (X_cm_cam, Y_cm_cam, Z_cm_cam)
+                        last_world_coords = (X_wrf, Y_wrf, Z_wrf)
+                        found_coords = True
+
+                        # -------------------------------
+                        #  Send the **Y_wrf** to Arduino
+                        # -------------------------------
+                        #
+                        # 1) Pick a plausible y_min..y_max range based on your real setup.
+                        #    If the heart moves ~2 cm above/below a baseline at Y=5,
+                        #    you could do y_min=2, y_max=8, etc.
+                        #
+                        y_min = 0.0
+                        y_max = 10.0
+
+                        # 2) Normalize Y_wrf to 0..1
+                        norm_y = (Y_wrf - y_min) / (y_max - y_min)
+                        norm_y = max(0.0, min(1.0, norm_y))
+
+                        # 3) Send norm_y to Arduino
+                        send_str = f"{norm_y:.3f}\n"
+                        ser.write(send_str.encode('utf-8'))
+
+                        # 4) Optionally read Arduino response
+                        if ser.in_waiting > 0:
+                            response = ser.readline().decode('utf-8', errors='replace').strip()
+                            print("Arduino says:", response)
+
+        # -------------------------
+        #  Overlay text on the frame
+        # -------------------------
+        if last_cam_coords is not None:
+            (xc, yc, zc) = last_cam_coords
+            cv2.putText(frame,
+                        f"Camera (cm): X={xc:.1f}, Y={yc:.1f}, Z={zc:.1f}",
+                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+
+        if last_world_coords is not None:
+            (xw, yw, zw) = last_world_coords
+            cv2.putText(frame,
+                        f"World (cm):  X={xw:.1f}, Y={yw:.1f}, Z={zw:.1f}",
+                        (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+
+        cv2.imshow("Arducam (World Reference Frame)", frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('c'):
+            # Calibrate the focal length (must have circle at known distance)
+            if contours:
+                largest_contour = max(contours, key=cv2.contourArea)
+                if len(largest_contour) >= 5:
+                    ellipse = cv2.fitEllipse(largest_contour)
+                    (x_center, y_center), (major_axis, minor_axis), angle = ellipse
+                    diameter_pixels = 0.5 * (major_axis + minor_axis)
+
+                    if diameter_pixels > 10:
+                        focal_length = (diameter_pixels * CALIBRATION_DISTANCE_MM) / KNOWN_DIAMETER_MM
+                        print(f"[CALIBRATION] Focal length set to {focal_length:.2f}")
+                    else:
+                        print("[CALIBRATION] Ellipse too small. Move closer.")
+                else:
+                    print("[CALIBRATION] Not enough points for ellipse.")
+            else:
+                print("[CALIBRATION] No object found.")
+
+    # Cleanup
+    cap.release()
+    cv2.destroyAllWindows()
+    ser.close()
+    print("[INFO] Program ended.")
+
+if __name__ == "__main__":
+    main()
