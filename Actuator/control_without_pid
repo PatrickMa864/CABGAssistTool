@@ -33,6 +33,11 @@ void loop() {
   // 2) Read the potentiometer (0..1023) -> 0..1
   int potRaw = analogRead(PotPin);
   float potVal = (float)potRaw / 1023.0;
+  //IS 3.3V OR 5V INPUT USED??
+  // Convert the analog reading (0 - 1023) to voltage (0 - 5V)
+  //voltage = potValue * (3.3 / 1023.0) *1.5; //output when input voltage is 3.3 yiels position of 2/3
+  //Calculate wiper position 
+  //wiperPosition = 10 * (voltage / 3.3) ;//scale in terms of length (cm)
 
   // 3) Compute a simple difference (error = setpoint - pot)
   float error = cameraSetpoint - potVal;
