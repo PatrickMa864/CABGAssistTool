@@ -1,0 +1,33 @@
+import cv2
+
+# Open the default camera (usually the built-in webcam)
+cap = cv2.VideoCapture(1)
+
+# Check if the camera opened successfully
+if not cap.isOpened():
+    print("Error: Could not open camera.")
+    exit()
+
+# Set the frame width and height (optional)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+while True:
+    # Capture frame-by-frame
+    ret, frame = cap.read()
+
+    # If frame is read correctly ret is True
+    if not ret:
+        print("Error: Can't receive frame. Exiting...")
+        break
+
+    # Display the resulting frame
+    cv2.imshow('Camera', frame)
+
+    # Press 'q' to quit
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+# Release the camera and close all OpenCV windows
+cap.release()
+cv2.destroyAllWindows()
