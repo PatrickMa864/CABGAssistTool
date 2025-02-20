@@ -102,7 +102,7 @@ void loop() {
   // Convert the analog reading (0 - 1023) to voltage (0 - 5V)
   voltage = potValue * (3.3 / 1023.0) *1.5; //output when input voltage is 3.3 yiels position of 2/3
  //Calculate wiper position as a percentage
- wiperPosition = 100 * (voltage / 3.3) ;//scale in terms of length mm
+ wiperPosition = 10 * (voltage / 3.3) ;//scale in terms of length (cm)? 
   // ---------------------- Print CSV Output ----------------------
   // Format: heading,roll,pitch,sys,gyro,accel,mag,potValue
   Serial.print(heading);
