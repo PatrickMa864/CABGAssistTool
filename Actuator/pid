@@ -1,0 +1,101 @@
+// ------------------------------------------
+// Arduino code for PID control of a voice coil motor
+// using a linear potentiometer for feedback,
+// and a Python script sending the setpoint (0..1) over serial.
+//
+// Combines your old PID library approach with the
+// "setpoint from Python" approach in the minimal code.
+// ------------------------------------------
+
+#include "PIDControl.h"
+
+#define MotorDirection 7
+#define MotorSpeed     6
+#define PotPin         A1
+
+// PID parameters
+float kp = 5.0;
+float ki = 1.0;
+float kd = 1.0;
+
+// Update interval for the PID (ms). 20ms = 50Hz control
+unsigned long timestep = 20;
+
+// Create PID instance with initial setpoint of 0.0
+PIDControl pid(kp, ki, kd, 0.0, timestep);
+
+// store the setpoint from Python here (0..1)
+float cameraSetpoint = 0.0;
+
+// For printing debug info
+unsigned long lastPrintTime = 0;
+const unsigned long printInterval = 100;
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(MotorDirection, OUTPUT);
+  pinMode(MotorSpeed, OUTPUT);
+
+  // Limit PID output to [-127..+127]
+  pid.minOutput = -127;
+  pid.maxOutput = +127;
+}
+
+void loop() {
+  unsigned long currentTime = millis();
+
+  // 1) Read any incoming setpoint from Python (0..1)
+  if (Serial.available() > 0) {
+    float newSetpoint = Serial.parseFloat();
+    if (!isnan(newSetpoint)) {
+      cameraSetpoint = newSetpoint;
+    }
+  }
+
+  // 2) Read the linear potentiometer (0..1023) -> [0..1]
+  int potRaw = analogRead(PotPin);
+  float potVal = (float)potRaw / 1023.0;
+
+  // 3) Feed the setpoint into the PID
+  //    The PID library calculates error = setpoint - input
+  pid.setpoint = cameraSetpoint;
+
+  // 4) Update the PID with the current feedback (potVal)
+  pid.update(potVal, currentTime);
+
+  // 5) Convert the PID output ([-127..+127]) into PWM [0..255] and direction
+  float pidOutput = pid.output;
+
+  // Convert -127..+127 to a 0..255 magnitude
+  int motorSpeedValue = abs(
+    map((int)pidOutput, -127, 127, -255, 255)
+  );
+  motorSpeedValue = constrain(motorSpeedValue, 0, 255);
+
+  // Direction: forward if pidOutput >= 0, reverse if pidOutput < 0
+  if (pidOutput >= 0.0) {
+    digitalWrite(MotorDirection, HIGH);
+  } else {
+    digitalWrite(MotorDirection, LOW);
+  }
+
+  // 6) Write PWM duty cycle
+  analogWrite(MotorSpeed, motorSpeedValue);
+
+  // 7) Print status periodically
+  if (currentTime - lastPrintTime >= printInterval) {
+    Serial.print("Setpoint: ");
+    Serial.print(cameraSetpoint, 3);
+    Serial.print(" | Pot: ");
+    Serial.print(potVal, 3);
+    Serial.print(" | PID Out: ");
+    Serial.print(pidOutput, 3);
+    Serial.print(" | PWM: ");
+    Serial.println(motorSpeedValue);
+    lastPrintTime = currentTime;
+  }
+
+  // 8) Delay ~20ms to match the PID timestep
+  delay(timestep);
+}
