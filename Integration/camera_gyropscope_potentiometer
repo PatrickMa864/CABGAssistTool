@@ -32,9 +32,6 @@ UPPER_COLOR_2 = np.array([180, 255, 255])
 
 KERNEL = np.ones((5, 5), np.uint8)
 
-# If your robot code is in mm, and your camera computations are in cm,
-# we may need to multiply or divide the final displacement so it matches.
-CAM_TO_ROBOT_UNITS_SCALE = 1  # e.g. camera in cm -> robot in mm
 
 ###############################################################################
 #                   USER CONFIG FOR ROBOT SERIAL
@@ -51,6 +48,9 @@ camera_displacement_z = 0.0  # in "camera units" (cm). We'll scale it for the ro
 focal_length = None           # Computed on the fly with 'c' key
 running = True                # Main loop flag
 z_offset_mm = 0.0  # Z offset for zeroing
+Z_mm=0.0
+# Y_mm=0.0
+# Z_mm=0.0
 
 
 ###############################################################################
@@ -90,7 +90,7 @@ def updateQuiver3(quiver, origin, direction, scale=5):
 #                   MAIN
 ###############################################################################
 def main():
-    global camera_displacement_z, focal_length, running, z_offset_mm
+    global camera_displacement_z, focal_length, running, z_offset_mm,Z_mm
 
     # ---------------------------
     # 1) Open Serial
@@ -144,7 +144,7 @@ def main():
     plt.title("Robot + Camera (Press 'q' in OpenCV window to quit)")
 
     # Robot base reference:
-    BRF_pt = np.array([11.875, 31.4, 0])  # base reference
+    BRF_pt = np.array([118.75, 314, 0])  # base reference
     plotunitvector(ax, BRF_pt,
                    np.array([1, 0, 0]),
                    np.array([0, 1, 0]),
@@ -230,8 +230,7 @@ def main():
                         X_mm = (x_shifted / focal_length) * distance_mm
                         Y_mm = (y_shifted / focal_length) * distance_mm
 
-                        # If you interpret Y_mm as "forward distance" and want Z to be "up/down",
-                        # you might choose:
+                        # If you interpret Y_mm as "forward distance" and want Z to be "up/down"
                         Z_mm = -Y_mm  # Negative if you want to invert the axis
 
                         camera_displacement_z = Z_mm - z_offset_mm
@@ -322,7 +321,7 @@ def main():
 
                 # Dot offset: camera_displacement_z is in cm, we want mm for the robot?
                 # If your robot code is in mm, do this:
-                dot_z_disp_robot_mm = camera_displacement_z * CAM_TO_ROBOT_UNITS_SCALE
+                dot_z_disp_robot_mm = camera_displacement_z 
 
                 # The dot is heartPt + DOT_OFFSET + that displacement
                 dotPt = np.array(heartPt)  # copy
@@ -334,13 +333,8 @@ def main():
 
                 # Title
                 tipCoordRel = p_ee - heartPt
-                new_title = (
-                    f"Heading={headingDeg:.1f}, Roll={rollDeg:.1f}, Pitch={pitchDeg:.1f} | "
-                    f"Cal={int(sysCal)},{int(gyroCal)},{int(accelCal)},{int(magCal)} | "
-                    f"potRaw={potRaw:.0f}, ext={potExtension:.1f}\n"
-                    f"tip w.r.t. heart=({tipCoordRel[0]:.1f},{tipCoordRel[1]:.1f},{tipCoordRel[2]:.1f})"
-                )
-                ax.set_title(new_title)
+                print("distance_tool_to_dot: ", tipCoordRel)
+
 
             except ValueError:
                 pass  # if parse fails
@@ -364,4 +358,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
