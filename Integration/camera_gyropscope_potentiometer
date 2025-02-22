@@ -40,7 +40,7 @@ SERIAL_PORT = 'COM9'
 SERIAL_BAUD = 115200
 
 ###############################################################################
-#                   GLOBAL SETUP
+#                   GLOBAL VARIABLESS
 ###############################################################################
 # We'll store the "vertical displacement" from the camera here,
 # so we can update the dot in the robot figure. This is updated per frame.
@@ -49,8 +49,8 @@ focal_length = None           # Computed on the fly with 'c' key
 running = True                # Main loop flag
 z_offset_mm = 0.0  # Z offset for zeroing
 Z_mm=0.0
-# Y_mm=0.0
-# Z_mm=0.0
+heartPt = np.array([301.625, 314, 150])# known dot starting point on heart
+dotcalibrated=False #has dot been calibrated
 
 
 ###############################################################################
@@ -90,7 +90,7 @@ def updateQuiver3(quiver, origin, direction, scale=5):
 #                   MAIN
 ###############################################################################
 def main():
-    global camera_displacement_z, focal_length, running, z_offset_mm,Z_mm
+    global camera_displacement_z, focal_length, running, z_offset_mm,Z_mm, heartPt
 
     # ---------------------------
     # 1) Open Serial
@@ -163,15 +163,11 @@ def main():
         'z': ax.quiver(0, 0, 0, 0, 0, 0, color='b', linewidth=2),
     }
 
-    # Heart reference point
-    heartPt = np.array([301.625, 314, 0])
     ax.plot([heartPt[0]], [heartPt[1]], [heartPt[2]],
             'ms', markersize=5, markerfacecolor='m')
 
     # Dot marker above the heart
-    dot_marker, = ax.plot([], [], [], 'y^', markersize=8, markerfacecolor='y')
-    DOT_OFFSET = 5.0  # mm above the heart at baseline
-                      # If your code is in mm, keep this in mm, etc.
+    dot_marker, = ax.plot([], [], [], 'r^', markersize=8, markerfacecolor='r')
 
     # ---------------------------
     # 4) Robot link constants
@@ -184,8 +180,8 @@ def main():
     l56A = 20
     l56B = 205
 
-    # Pot scale (mm per raw count)
-    potScale = 1.0
+    # --------------------------- Heart Reference Point ---------------------------
+    dotPt = heartPt.copy()  # Dot starts at heart position
 
     # We'll do an indefinite loop until user presses 'q' in OpenCV window
     while running:
@@ -233,7 +229,10 @@ def main():
                         # If you interpret Y_mm as "forward distance" and want Z to be "up/down"
                         Z_mm = -Y_mm  # Negative if you want to invert the axis
 
-                        camera_displacement_z = Z_mm - z_offset_mm
+                        # Update dot Z position if calibrated
+                        if dot_calibrated:
+                            camera_displacement_z = Z_mm - z_offset_mm  # Calculate displacement
+                            dotPt[2] = heartPt[2] + camera_displacement_z  # Update dot Z position
 
 
                     else:
@@ -258,7 +257,10 @@ def main():
 
                     # Zero the Z offset at the circle's current height:
                     z_offset_mm = Z_mm
-                    print(f"[CALIBRATION] Zeroing Z at current location = {z_offset_mm:.2f} mm")
+                    dotPt = heartPt.copy()  # Reset dot to starting position
+                    dot_calibrated = True  # Mark that calibration has been done
+                    print(f"[CALIBRATION] Dot set to heart position {dotPt}")
+                    
                 else:
                     print("[CALIBRATION] Circle not found or too small for calibration.")
 
@@ -269,12 +271,11 @@ def main():
         fields = data_line.split(',')
         if len(fields) >= 8:
             try:
-                headingDeg, rollDeg, pitchDeg, sysCal, gyroCal, accelCal, magCal, potRaw = map(float, fields)
+                headingDeg, rollDeg, pitchDeg, sysCal, gyroCal, accelCal, magCal, potExtension = map(float, fields)
 
                 heading = math.radians(headingDeg)
                 roll = math.radians(rollDeg)
                 pitch = math.radians(pitchDeg)
-                potExtension = potRaw * potScale
 
                 # Offsets for L-shape
                 theta2_yaw = heading
@@ -285,7 +286,7 @@ def main():
                 dhparams = [
                     [0,        0,          (l01A + d01 + l01B),    0],
                     [0,  np.pi/2,          0,                      theta2_yaw],
-                    [0,  np.pi/2,          0,                      theta3_pitch + np.pi/2],
+                    [0,  np.pi/2,          0,                      theta3_pitch + (np.pi)/2],
                     [0,        0,          0,                      theta4_roll],
                     [l45A,     0,          0,                      0],
                     [0,        0,          l45B,                   0],
@@ -323,9 +324,9 @@ def main():
                 # If your robot code is in mm, do this:
                 dot_z_disp_robot_mm = camera_displacement_z 
 
-                # The dot is heartPt + DOT_OFFSET + that displacement
+                # The dot is heartPt + that displacement
                 dotPt = np.array(heartPt)  # copy
-                dotPt[2] += DOT_OFFSET + dot_z_disp_robot_mm
+                dotPt[2] +=  dot_z_disp_robot_mm
 
                 # Must pass lists to set_data / set_3d_properties
                 dot_marker.set_data([dotPt[0]], [dotPt[1]])
@@ -333,7 +334,7 @@ def main():
 
                 # Title
                 tipCoordRel = p_ee - heartPt
-                print("distance_tool_to_dot: ", tipCoordRel)
+                print(f"roll: {theta4_roll:.5f}, pitch: {theta3_pitch:.5f}, yaw: {theta2_yaw:.5f}, tool_to_dot_dist: {tipCoordRel}")
 
 
             except ValueError:
