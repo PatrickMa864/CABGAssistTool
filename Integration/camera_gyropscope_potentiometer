@@ -14,7 +14,7 @@ from mpl_toolkits.mplot3d import Axes3D
 KNOWN_DIAMETER_MM = 30
 
 # Distance used for camera calibration, in mm
-CALIBRATION_DISTANCE_MM = 370.0
+CALIBRATION_DISTANCE_MM = 370.0#373.75
 
 # Camera index
 CAMERA_INDEX = 0
@@ -49,9 +49,8 @@ focal_length = None           # Computed on the fly with 'c' key
 running = True                # Main loop flag
 z_offset_mm = 0.0  # Z offset for zeroing
 Z_mm=0.0
-heartPt = np.array([301.625, 314, 150])# known dot starting point on heart
+heartPt = np.array([347.5, 279.7, 175])# known dot starting point on heart
 dotcalibrated=False #has dot been calibrated
-
 
 ###############################################################################
 #                   HELPER FUNCTIONS
@@ -116,6 +115,7 @@ def main():
     cap.set(cv2.CAP_PROP_FPS, FRAME_RATE)
 
     print("[INFO] Press 'c' in the OpenCV window to calibrate camera.")
+    print("[INFO] Press 'z' in the OpenCV window to zero BNO055 sensor.")
     print("[INFO] Press 'q' in the OpenCV window to quit.")
 
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -141,10 +141,12 @@ def main():
     ax.set_ylim(0, 800.4)
     ax.set_xlim(0, 400.2)
     ax.set_zlim(0, 400.2)
-    plt.title("Robot + Camera (Press 'q' in OpenCV window to quit)")
+    plt.title("Robot + Camera (Press 'q' to quit in OpenCV window )")
+
+
 
     # Robot base reference:
-    BRF_pt = np.array([118.75, 314, 0])  # base reference
+    BRF_pt = np.array([118, 296.5, 0])  # base reference
     plotunitvector(ax, BRF_pt,
                    np.array([1, 0, 0]),
                    np.array([0, 1, 0]),
@@ -164,7 +166,7 @@ def main():
     }
 
     ax.plot([heartPt[0]], [heartPt[1]], [heartPt[2]],
-            'ms', markersize=5, markerfacecolor='m')
+            'ms', markersize=8, markerfacecolor='k')
 
     # Dot marker above the heart
     dot_marker, = ax.plot([], [], [], 'r^', markersize=8, markerfacecolor='r')
@@ -241,11 +243,11 @@ def main():
 
             # Show text: if we have a displacement, print it
             if focal_length is not None:
-                disp_text = f"Camera displacement Z={camera_displacement_z:.2f} mm"
+                disp_text = f"Dot displacement Z={camera_displacement_z:.2f} mm"
                 cv2.putText(frame, disp_text, (10, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
 
-            cv2.imshow("Camera Feed - Press q to quit, c to calibrate", frame)
+            cv2.imshow("Camera Feed - Press q to quit, c to calibrate camera, z to zero gyro", frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 running = False
@@ -263,6 +265,9 @@ def main():
                     
                 else:
                     print("[CALIBRATION] Circle not found or too small for calibration.")
+            elif key == ord('z'):  # Zero BNO055 when 'Z' is pressed in OpenCV window
+                ser.write(b'z\n')
+                print("[INFO] Sent 'z' to Arduino for zeroing BNO055.")
 
         # -------------------------------------------------------------------
         # B) READ SERIAL FROM ARDUINO & PARSE
