@@ -1,7 +1,7 @@
 
 
 #define MotorDirection 7
-#define MotorSpeed     6
+#define MotorSpeed     6//pwm
 #define PotPin         A1
 
 // We'll store the setpoint from Python here
@@ -11,7 +11,7 @@ unsigned long lastPrintTime = 0;
 const unsigned long printInterval = 100;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);//9600//115200 //baud rate must match in serial monitor
 
   pinMode(MotorDirection, OUTPUT);
   pinMode(MotorSpeed, OUTPUT);
@@ -74,5 +74,5 @@ void loop() {
     lastPrintTime = currentTime;
   }
 
-  delay(20); // small delay ~50 Hz loop
+  //delay(20); // small delay ~50 Hz loop
 }
