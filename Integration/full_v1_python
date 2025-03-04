@@ -344,9 +344,9 @@ def main():
                 tipCoordRel = p_ee - heartPt
                 
                 dist_tool_dot = math.sqrt((p_ee[0] - heartPt[0])**2 + (p_ee[1] - heartPt[1])**2 + (p_ee[2] - heartPt[2])**2)
-                #ser.write(f"{dist_tool_dot}\n".encode())
+                ser.write(f"{dist_tool_dot}\n".encode())
 
-                print(f"roll: {math.degrees(theta4_roll):.4f}, pitch: {math.degrees(theta3_pitch):.4f}, yaw: {math.degrees(theta2_yaw):.4f}, tool_to_dot_dist: {tipCoordRel}, pwm: {Pwm}")
+                print(f"roll: {math.degrees(theta4_roll):.4f}, pitch: {math.degrees(theta3_pitch):.4f}, yaw: {math.degrees(theta2_yaw):.4f}, tool_to_dot_dist: {dist_tool_dot}, pwm: {Pwm}")
 
 
 
