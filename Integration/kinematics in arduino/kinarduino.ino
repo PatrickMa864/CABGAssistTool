@@ -39,9 +39,10 @@ float dotPt[3] = {347.5, 279.7, 175.0};
 // Euclidean distance from tool to dotPt
 float dist_tool_dot = 110.0;
 
+float error=0.0;
 // ---------------------- Timing Variables ----------------------
 unsigned long lastMeasurementTime = 0;
-const unsigned long measurementInterval = 1000; // send measurement every 1 sec
+const unsigned long measurementInterval = 100; // send measurement every 1 sec
 
 // ---------------------- Helper Functions ----------------------
 // Multiply two 4x4 matrices: C = A * B
@@ -198,7 +199,9 @@ void loop() {
     Serial.print(", dist_tool_dot=");
     Serial.print(dist_tool_dot);
     Serial.print(", motorPWM=");
-    Serial.println((int)motorSpeedValue);
+    Serial.print((int)motorSpeedValue);
+    Serial.print(", PIDerror=");
+    Serial.println(error);
     lastMeasurementTime = currentTime;
   }
 }
