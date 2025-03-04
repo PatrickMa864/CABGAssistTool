@@ -24,7 +24,7 @@ float wiperPosition;
 // 'toolDistance'
 // This will be the distance (mm) we receive from Python.
 // --------------------------------------------------------------------
-float toolDistance = 0.0;
+float toolDistance = 110.0;
 
 // Timing variables for printing
 unsigned long lastPrintTime = 0;
@@ -92,17 +92,18 @@ void loop() {
   //   motorSpeedValue ~ |error| scaled to 0..255
   // --------------------------------------------------------------------
   float motorSpeedValue = 0.0;
-  const float desiredDistance = 10.0;  // mm
+  const float desiredDistance = 80.0;  // mm
+  float maxdistance=100.0;
 
-  if (toolDistance > 30.0) {
-    // Distance is too large, so stop actuation
+  if (toolDistance > 100.0) {
+    // Distance is too large, stop actuation
     motorSpeedValue = 0.0;
   } else {
     // Basic P control
     float error = desiredDistance - toolDistance;
-    motorSpeedValue = fabs(error) * 255.0;  // Very rough scaling
-    if (motorSpeedValue > 255.0) {
-      motorSpeedValue = 255.0;
+    motorSpeedValue = (fabs(error))/maxdistance*235; 
+    if (motorSpeedValue > 235.0) {
+      motorSpeedValue = 235.0;
     }
 
     // Direction depends on the sign of 'error'
@@ -129,8 +130,9 @@ void loop() {
   bno.getCalibration(&sysCal, &gyroCal, &accelCal, &magCal);
 
   // ---------------------- Print Data (Every 100ms) ----------------------
+  //this is not slowing it down 
   unsigned long currentTime = millis();
-  if (currentTime - lastPrintTime >= printInterval) {
+  if (currentTime - lastPrintTime >= 100) {
     Serial.print(heading); Serial.print(",");
     Serial.print(roll); Serial.print(",");
     Serial.print(pitch); Serial.print(",");
