@@ -170,19 +170,22 @@ void loop() {
 
   // ---------------------- Motor Control Logic ----------------------
   float motorSpeedValue = 0.0;
-  const float desiredDistance = 80.0;
-  if (dist_tool_dot > 100.0) {
-    motorSpeedValue = 0.0;
-  } else {
-    float error = desiredDistance - dist_tool_dot;
-    motorSpeedValue = fabs(error) * 235;
-    if (motorSpeedValue > 235.0)
-      motorSpeedValue = 235.0;
-    if (error >= 0)
-      digitalWrite(MotorDirection, HIGH);
-    else
-      digitalWrite(MotorDirection, LOW);
-  }
+  const float desiredDistance = 145.0;
+  //if (dist_tool_dot > 150.0) {
+  //  motorSpeedValue = 0.0;
+  //}
+  // else {
+  error = (desiredDistance - dist_tool_dot)*1.5;
+   if (error >= 0)
+    digitalWrite(MotorDirection, HIGH);
+  else
+    digitalWrite(MotorDirection, LOW);
+  //}
+  motorSpeedValue = fabs(error)/desiredDistance * 235;
+  if (motorSpeedValue > 235.0)
+    motorSpeedValue = 235.0;
+  
+  //}
   analogWrite(MotorSpeed, (int)motorSpeedValue);
 
   // ---------------------- Send Measurement Packet ----------------------
