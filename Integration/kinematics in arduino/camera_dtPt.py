@@ -9,7 +9,7 @@ import threading
 #                   USER CONFIG FOR CAMERA
 ###############################################################################
 KNOWN_DIAMETER_MM = 30
-CALIBRATION_DISTANCE_MM = 370.0  # mm
+CALIBRATION_DISTANCE_MM = 500.0  # mm
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
@@ -155,7 +155,7 @@ def main():
         # Display overlay
         if focal_length is not None:
             disp_text = f"Dot Z: {camera_displacement_z:.2f} mm"
-            cv2.putText(frame, disp_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,255,255), 2)
+            cv2.putText(frame, disp_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
         cv2.imshow("Camera Feed", frame)
         key = cv2.waitKey(1) & 0xFF
 
