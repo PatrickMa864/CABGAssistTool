@@ -173,20 +173,19 @@ void loop() {
   const float desiredDistance = 150.0;
   //if (dist_tool_dot > 150.0) {
    //motorSpeedValue = 0.0;
-   //digitalWrite(MotorDirection, LOW);
   digitalWrite(MotorDirection, HIGH);
   //}
   //else {
-  error = (desiredDistance - dist_tool_dot) * 1.5;
+  error = (desiredDistance - dist_tool_dot) //* 1.5;
    if (error < 0)
     digitalWrite(MotorDirection, HIGH);
   else
     digitalWrite(MotorDirection, LOW);
-  //}
+  
   motorSpeedValue = fabs(error)/desiredDistance * 235;
   if (motorSpeedValue > 235.0)
     motorSpeedValue = 235.0;
-  
+  //}
 
   analogWrite(MotorSpeed, (int)motorSpeedValue);
 
