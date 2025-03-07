@@ -28,7 +28,7 @@ const float l56A = 20.0;
 const float l56B = 205 + 24.34;   // 229.34 mm
 
 // Base offset (BRF_pt from Python code)
-const float BRF_pt[3] = {118.0, 296.5, 0.0};
+const float BRF_pt[3] = {67.0, 296.5, 0.0};
 
 // Fixed heart point (in mm)
 const float heartPt[3] = {347.5, 279.7, 175.0};
@@ -170,21 +170,21 @@ void loop() {
 
   // ---------------------- Motor Control Logic ----------------------
   float motorSpeedValue = 0.0;
-  const float desiredDistance = 150.0;
+  const float desiredDistance = 100.0;
   //if (dist_tool_dot > 150.0) {
    //motorSpeedValue = 0.0;
   digitalWrite(MotorDirection, HIGH);
   //}
   //else {
-  error = (desiredDistance - dist_tool_dot) //* 1.5;
+  error = (desiredDistance - dist_tool_dot) * 2;
    if (error < 0)
     digitalWrite(MotorDirection, HIGH);
   else
     digitalWrite(MotorDirection, LOW);
   
-  motorSpeedValue = fabs(error)/desiredDistance * 235;
-  if (motorSpeedValue > 235.0)
-    motorSpeedValue = 235.0;
+  motorSpeedValue = fabs(error)/desiredDistance * 255;
+  if (motorSpeedValue > 255.0)
+    motorSpeedValue = 255.0;
   //}
 
   analogWrite(MotorSpeed, (int)motorSpeedValue);
@@ -204,7 +204,7 @@ void loop() {
     Serial.print(dist_tool_dot);
     Serial.print(", motorPWM=");
     Serial.print((int)motorSpeedValue);
-    Serial.print(", PIDerror=");
+    Serial.print(", error=");
     Serial.println(error);
     lastMeasurementTime = currentTime;
   }
