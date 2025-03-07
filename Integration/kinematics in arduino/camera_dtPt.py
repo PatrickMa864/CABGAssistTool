@@ -8,7 +8,7 @@ import threading
 ###############################################################################
 #                   USER CONFIG FOR CAMERA
 ###############################################################################
-KNOWN_DIAMETER_MM = 30
+KNOWN_DIAMETER_MM = 15#30
 CALIBRATION_DISTANCE_MM = 500.0  # mm
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
@@ -16,9 +16,9 @@ FRAME_HEIGHT = 480
 FRAME_RATE = 30
 
 # HSV thresholds for red
-LOWER_COLOR_1 = np.array([0, 120, 70])
+LOWER_COLOR_1 = np.array([0, 100, 100])
 UPPER_COLOR_1 = np.array([10, 255, 255])
-LOWER_COLOR_2 = np.array([170, 120, 70])
+LOWER_COLOR_2 = np.array([150, 100, 100])
 UPPER_COLOR_2 = np.array([180, 255, 255])
 KERNEL = np.ones((5, 5), np.uint8)
 
