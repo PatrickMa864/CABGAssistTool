@@ -9,7 +9,7 @@ import matplotlib
 ###############################################################################
 #                   USER CONFIG FOR CAMERA
 ###############################################################################
-KNOWN_DIAMETER_MM = 10#15#30
+KNOWN_DIAMETER_MM = 10#15#3
 CALIBRATION_DISTANCE_MM = 500.0  # mm
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
@@ -30,7 +30,7 @@ SERIAL_PORT = 'COM9'
 SERIAL_BAUD = 115200
 
 ###############################################################################
-#                   GLOBAL VARIABLES
+#                   GLOBAL VARIABLEco
 ###############################################################################
 camera_displacement_z = 0.0   # measured displacement (mm)
 focal_length = None           # computed on the fly via calibration
