@@ -29,14 +29,14 @@ x = r * np.cos(theta_radians)
 y = r * np.sin(theta_radians)
 
 # Plot the cam profile
-plt.figure()
-plt.plot(x, y, '-o')
-plt.xlabel('X Coordinate')
-plt.ylabel('Y Coordinate')
-plt.title('Cam Profile')
-plt.axis('equal')
-plt.grid()
-plt.show()
+#plt.figure()
+#plt.plot(x, y, '-o')
+#plt.xlabel('X Coordinate')
+#plt.ylabel('Y Coordinate')
+#plt.title('Cam Profile')
+#plt.axis('equal')
+#plt.grid()
+#plt.show()
 
 # Parameters for simulation
 rotation_angles = np.linspace(0, 2 * np.pi, num=360)+np.pi/2 # Rotation steps
