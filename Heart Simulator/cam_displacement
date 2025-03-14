@@ -1,0 +1,77 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Define polar coordinates (r: radius, theta: angle in radians)
+theta_degrees = np.array([0, 15, 30, 45, 60, 75, 82, 90, 97, 105, 120, 135, 
+                          150, 165, 180, 195, 210, 225, 240, 255, 262, 
+                          270, 277, 285, 300, 315, 330, 345, 360])
+r = np.array([11.994, 12.336, 13.445, 15.620, 19.485, 27.322, 
+              31.465, 32.964, 31.465, 27.322, 19.485, 
+              15.620, 13.445, 12.336, 11.994,
+              12.336, 13.445, 15.620,
+              19.485, 27.322,
+              31.465,
+              32.964,
+              31.465,
+              27.322,
+              19.485,
+              15.620,
+              13.445,
+              12.336,
+              11.994])
+
+# Convert degrees to radians for calculations
+theta_radians = np.radians(theta_degrees)
+
+# Convert to Cartesian coordinates
+x = r * np.cos(theta_radians)
+y = r * np.sin(theta_radians)
+
+# Plot the cam profile
+plt.figure()
+plt.plot(x, y, '-o')
+plt.xlabel('X Coordinate')
+plt.ylabel('Y Coordinate')
+plt.title('Cam Profile (Polar Coordinates)')
+plt.axis('equal')
+plt.grid()
+plt.show()
+
+# Parameters for simulation
+rotation_angles = np.linspace(0, 2 * np.pi, num=360) # Rotation steps
+displacement = np.zeros_like(rotation_angles) # Initialize displacement array
+initial_disp = min(r) # Reference point for zero displacement
+
+# Simulate rotation and calculate follower displacement
+for i in range(len(rotation_angles)):
+    # Rotate cam profile by current angle
+    theta_rotated = theta_radians + rotation_angles[i]
+    y_rotated = r * np.sin(theta_rotated)
+
+    # Follower displacement from starting position
+    displacement[i] = max(y_rotated) - initial_disp
+
+# Plot displacement vs rotation angle
+plt.figure()
+plt.plot(np.degrees(rotation_angles), displacement)
+plt.xlabel('Rotation Angle (degrees)')
+plt.ylabel('Follower Displacement')
+plt.title('Follower Displacement vs Cam Rotation From Starting Position')
+plt.grid()
+plt.show()
+
+# Export data to CSV files using pandas
+# Cam profile data (polar coordinates)
+cam_profile_data = pd.DataFrame({
+    'Theta_Degrees': theta_degrees,
+    'Radius': r
+})
+cam_profile_data.to_csv('cam_profile_polar.csv', index=False)
+
+# Follower displacement data
+displacement_data = pd.DataFrame({
+    'Angle_Degrees': np.degrees(rotation_angles),
+    'Displacement': displacement
+})
+displacement_data.to_csv('follower_displacement.csv', index=False)
