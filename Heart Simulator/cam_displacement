@@ -33,13 +33,13 @@ plt.figure()
 plt.plot(x, y, '-o')
 plt.xlabel('X Coordinate')
 plt.ylabel('Y Coordinate')
-plt.title('Cam Profile (Polar Coordinates)')
+plt.title('Cam Profile')
 plt.axis('equal')
 plt.grid()
 plt.show()
 
 # Parameters for simulation
-rotation_angles = np.linspace(0, 2 * np.pi, num=360) # Rotation steps
+rotation_angles = np.linspace(0, 2 * np.pi, num=360)+np.pi/2 # Rotation steps
 displacement = np.zeros_like(rotation_angles) # Initialize displacement array
 initial_disp = min(r) # Reference point for zero displacement
 
