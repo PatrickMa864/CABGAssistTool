@@ -1,0 +1,45 @@
+// ---------------------- PID Variables ----------------------
+float integralSum = 0.0;
+const float Ki = 0.1;          // Start with 0.1 and tune
+const float maxIntegral = 100; // Anti-windup protection
+unsigned long lastTime = 0;
+
+// ---------------------- Control Loop ----------------------
+void loop() {
+  // Calculate time difference
+  unsigned long now = millis();
+  float deltaTime = (now - lastTime) / 1000.0; // Convert to seconds
+  lastTime = now;
+
+  // ---------------------- Distance Calculation ----------------------
+  float dx = p_ee[0] - dotPt[0];
+  float dy = p_ee[1] - dotPt[1];
+  float dz = p_ee[2] - dotPt[2];
+  dist_tool_dot = sqrt(dx*dx + dy*dy + dz*dz);
+
+  // ---------------------- PID Calculations ----------------------
+  float error = desiredDistance - dist_tool_dot;
+  
+  // Integral term with anti-windup
+  integralSum += error * deltaTime;
+  integralSum = constrain(integralSum, -maxIntegral, maxIntegral);
+
+  // Adaptive scaling (original P term)
+  float scaledError = error;
+  if (abs(error) < 5) {
+    scaledError *= 3;  // Fine adjustment
+  } else {
+    scaledError *= 2;  // Coarse adjustment
+  }
+
+  // Combine P and I terms
+  float controlOutput = scaledError + (Ki * integralSum);
+
+  // ---------------------- Motor Control ----------------------
+  digitalWrite(MotorDirection, controlOutput < 0 ? HIGH : LOW);
+  
+  float motorSpeedValue = fabs(controlOutput)/100 * 255;
+  motorSpeedValue = constrain(motorSpeedValue, 0, 255);
+  
+  analogWrite(MotorSpeed, (int)motorSpeedValue);
+}
