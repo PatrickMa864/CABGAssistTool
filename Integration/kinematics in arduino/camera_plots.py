@@ -190,7 +190,7 @@ def main():
                     distance_mm = (KNOWN_DIAMETER_MM * focal_length) / diameter_pixels
                     y_shifted = (yc - cy)
                     Y_mm = (y_shifted / focal_length) * distance_mm
-                    Z_mm = -Y_mm  # Invert axis if needed
+                    Z_mm = -Y_mm  # Invert axis if neededq
 
         # Calibration: accumulate a few Z measurements if in calibration mode.
         if calibrating and (diameter_pixels > 10):
