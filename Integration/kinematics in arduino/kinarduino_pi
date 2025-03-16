@@ -45,8 +45,8 @@ const unsigned long measurementInterval = 100; // Send measurement packet every 
 
 // ---------------------- PI Controller Variables ----------------------
 // Tune these values to adjust the controller response:
-float Kp = 3.0;   // Proportional gain. CHANGE THIS VALUE TO TUNE P.
-float Ki = 0.3;   // Integral gain.   CHANGE THIS VALUE TO TUNE I.
+float Kp = 3;   // Proportional gain. CHANGE THIS VALUE TO TUNE P.
+float Ki = 0.1;  // Integral gain.   CHANGE THIS VALUE TO TUNE I.
 const float maxIntegral = 100; // Maximum integral term (anti-windup)
 
 // Persistent variables for PI controller:
@@ -196,7 +196,7 @@ void loop() {
   integralSum = constrain(integralSum, -maxIntegral, maxIntegral);
   
   // Compute the PI control output
-  float controlOutput = 3 * ((Kp * error) + (Ki * integralSum));
+  float controlOutput = 3.5 * ((Kp * error) + (Ki * integralSum));
 
   // ---------------------- Motor Command ----------------------
   // Set motor direction based on sign of control output
@@ -213,7 +213,7 @@ void loop() {
   unsigned long currentTime = millis();
   if (currentTime - lastMeasurementTime >= measurementInterval) {
     Serial.print("M: ");
-    Serial.print("heading=");
+    Serial.print("yaw=");
     Serial.print(heading * (180.0/PI));
     Serial.print(", roll=");
     Serial.print(roll * (180.0/PI));
@@ -221,10 +221,14 @@ void loop() {
     Serial.print(pitch * (180.0/PI));
     Serial.print(", dist_tool_dot=");
     Serial.print(dist_tool_dot);
-    Serial.print(", motorPWM=");
+    Serial.print(", PWM=");
     Serial.print((int)motorSpeedValue);
     Serial.print(", error=");
-    Serial.println(error);
+    Serial.print(error);
+    Serial.print(", pot_dist=");
+    Serial.print(potExtension);
+    Serial.print(", Desired_dist=");
+    Serial.println(desiredDistance);
     lastMeasurementTime = currentTime;
   }
 }
