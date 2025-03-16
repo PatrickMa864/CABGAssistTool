@@ -40,19 +40,31 @@ float dist_tool_dot = 110.0;
 
 // ---------------------- Timing Variables ----------------------
 unsigned long lastMeasurementTime = 0;
-const unsigned long measurementInterval = 100; // Send measurement packet every 100 ms
+const unsigned long measurementInterval = 75; // Increase sampling rate (20ms ~ 50 Hz)
 
-// ---------------------- PID Controller Variables ----------------------
+// ---------------------- PID & Filter Controller Variables ----------------------
 // PID Tuning Parameters - CHANGE THESE VALUES TO TUNE THE CONTROLLER:
-float Kp = 3.0;    // Proportional gain
-float Ki = 0.1;    // Integral gain
+float Kp = 2.0;    // Proportional gain
+float Ki = 0.05;    // Integral gain
 float Kd = 0.05;   // Derivative gain
-const float maxIntegral = 100; // Anti-windup limit
+
+// Low-Pass Filter Coefficients - CHANGE THESE TO TUNE FILTER RESPONSE:
+const float alphaGyro  = 0.2; // Gyro lowpass filter constant (0 < alpha < 1)
+const float alphaDeriv = 0.1; // Derivative lowpass filter constant
+
+const float maxIntegral = 100; // Anti-windup limit for the integral term
 
 // Persistent variables for PID controller:
 float integralSum = 0.0;
 float lastError = 0.0;
+float filteredDerivative = 0.0;  // For lowpass filtering the derivative
 unsigned long lastControlTime = 0;
+
+// Filtered gyroscope values (global so that they persist)
+float filteredHeading = 0.0;
+float filteredRoll    = 0.0;
+float filteredPitch   = 0.0;
+bool firstGyroReading = true;
 
 // ---------------------- Helper Functions ----------------------
 // Multiply two 4x4 matrices: C = A * B
@@ -140,21 +152,37 @@ void loop() {
     }
   }
   
-  // ---------------------- Sensor Reading & Kinematics ----------------------
+  // ---------------------- Sensor Reading & Gyro Lowpass Filtering ----------------------
   int potValue = analogRead(PotPin);
   float potExtension = ((float)potValue / 1023.0) * 1.5 * 100.0; // in mm
 
   sensors_event_t orientationData;
   bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
-  float heading = (orientationData.orientation.x - headingOffset) * (PI / 180.0);
-  float roll    = (orientationData.orientation.y - rollOffset)    * (PI / 180.0);
-  float pitch   = (orientationData.orientation.z - pitchOffset)   * (PI / 180.0);
+  
+  // Convert raw sensor readings to radians (after zeroing)
+  float rawHeading = (orientationData.orientation.x - headingOffset) * (PI / 180.0);
+  float rawRoll    = (orientationData.orientation.y - rollOffset)    * (PI / 180.0);
+  float rawPitch   = (orientationData.orientation.z - pitchOffset)   * (PI / 180.0);
+  
+  // Initialize filtered values on first run
+  if (firstGyroReading) {
+    filteredHeading = rawHeading;
+    filteredRoll    = rawRoll;
+    filteredPitch   = rawPitch;
+    firstGyroReading = false;
+  }
+  
+  // Low-pass filter the gyroscope (orientation) data:
+  filteredHeading = (alphaGyro * rawHeading) + ((1 - alphaGyro) * filteredHeading);
+  filteredRoll    = (alphaGyro * rawRoll)    + ((1 - alphaGyro) * filteredRoll);
+  filteredPitch   = (alphaGyro * rawPitch)   + ((1 - alphaGyro) * filteredPitch);
 
+  // ---------------------- Forward Kinematics ----------------------
   float T1[4][4], T2[4][4], T3[4][4], T4[4][4], T5[4][4], T6[4][4], T7[4][4];
   jointTransformation(0, 0, l01A, 0, T1);
-  jointTransformation(0, PI/2.0, 0, heading, T2);
-  jointTransformation(0, PI/2.0, 0, pitch + (PI/2.0), T3);
-  jointTransformation(0, 0, 0, roll, T4);
+  jointTransformation(0, PI/2.0, 0, filteredHeading, T2);
+  jointTransformation(0, PI/2.0, 0, filteredPitch + (PI/2.0), T3);
+  jointTransformation(0, 0, 0, filteredRoll, T4);
   jointTransformation(l45A, 0, 0, 0, T5);
   jointTransformation(0, 0, l45B, 0, T6);
   jointTransformation(0, 0, (potExtension + l56A + l56B), 0, T7);
@@ -177,27 +205,31 @@ void loop() {
   float dz = p_ee[2] - dotPt[2];
   dist_tool_dot = sqrt(dx * dx + dy * dy + dz * dz);
 
-  // ---------------------- PID Controller Calculation ----------------------
+  // ---------------------- PID Controller Calculation with Filtered Derivative ----------------------
   // Desired distance (mm) between tool and target point
   const float desiredDistance = 50.0;
   
   // Calculate time elapsed since last control update (in seconds)
   unsigned long now = millis();
   float deltaTime = (now - lastControlTime) / 1000.0;
+  if(deltaTime <= 0) deltaTime = 0.001;  // Avoid division by zero
   lastControlTime = now;
   
   // Calculate error between desired and actual distance
   float error = desiredDistance - dist_tool_dot;
   
-  // Calculate derivative term (change in error over time)
-  float derivative = (error - lastError) / deltaTime;
+  // Calculate raw derivative term (change in error over time)
+  float rawDerivative = (error - lastError) / deltaTime;
+  
+  // Low-pass filter the derivative term:
+  filteredDerivative = (alphaDeriv * rawDerivative) + ((1 - alphaDeriv) * filteredDerivative);
   
   // Update the integral term with anti-windup protection
   integralSum += error * deltaTime;
   integralSum = constrain(integralSum, -maxIntegral, maxIntegral);
   
   // Compute PID control output with scaling factor 3.5
-  float controlOutput = 3.5 * ((Kp * error) + (Ki * integralSum) + (Kd * derivative));
+  float controlOutput = 3.5 * ((Kp * error) + (Ki * integralSum) + (Kd * filteredDerivative));
   
   // Save the current error for the next derivative calculation
   lastError = error;
@@ -217,11 +249,11 @@ void loop() {
   if (currentTime - lastMeasurementTime >= measurementInterval) {
     Serial.print("M: ");
     Serial.print("heading=");
-    Serial.print(heading * (180.0 / PI));
+    Serial.print(filteredHeading * (180.0 / PI));
     Serial.print(", roll=");
-    Serial.print(roll * (180.0 / PI));
+    Serial.print(filteredRoll * (180.0 / PI));
     Serial.print(", pitch=");
-    Serial.print(pitch * (180.0 / PI));
+    Serial.print(filteredPitch * (180.0 / PI));
     Serial.print(", dist_tool_dot=");
     Serial.print(dist_tool_dot);
     Serial.print(", motorPWM=");
