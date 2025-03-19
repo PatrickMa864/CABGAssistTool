@@ -168,6 +168,9 @@ As shown in Figure 6, to convert from the IRF to the BRF there is no rotation on
 
 
 \pagebreak
+\section{Integration and Testing - Nathan}
+-steps taken to integrate python and arduino code\\
+-latency considerations (moved everything to arduino for less delay in computations), \\periodic polling, \\adding spring to smooth motion of actuation\\ filtering data\\ adding a stopper to constrain motion of solenoid 
 \section{Experimental Validation - Nathan}
 
 \section{Progress Analysis}
