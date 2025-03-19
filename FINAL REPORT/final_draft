@@ -1,1 +1,135 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{float}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{textgreek}
 
+\title{Handheld Surgical Robot for Coronary Artery Bypass Graft on a Beating Heart}
+\author{Omer Cebi, Nathan Chen, Joya Evans, Patrick Ma\\
+Systems and Computer Engineering, \\
+Carleton University, Ottawa, ON, Canada}
+
+\date{March 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+    
+\subsection{Current Challenges with Modern CABG Procedures}
+
+
+\subsection{Non-Robotic Solutions: Tissue Dyes}
+
+
+
+
+\subsection{Benefit of Robotic Solutions over Non-Robotic Solutions}
+Technology can be used to aid diagnosis of patients. For certain procedures, AI and medical devices can replace a specialist, reducing the time and cost for a patient to receive treatment \cite{shah2018iot}. The use of devices can allow for patient diagnosis and treatment in rural areas where a specialist is unavailable \cite{javed2007knowledge}. A robotic solution could lower costs, time, and resources for the procedure, while offering a higher level of precision and automation to tedious and difficult processes.
+
+\subsection{Proposed Laparoscopic Robotic Solution}
+ \\
+
+
+
+\pagebreak
+\section{Materials}
+
+
+\subsection{Design of Device}
+
+
+
+
+%section2
+%introduce math/ theory / materials
+% a nice diagram
+
+\section{Methods and Theory}
+\subsection{ Image Processing}
+
+
+
+\subsubsection{Colour Recognition and Obstacle Determination}
+
+
+
+
+
+
+\subsection{Surgical Robotics}
+
+
+\subsubsection{The Homogeneous transform}
+An important concept in robotics is the ability to describe locations in space in terms of different frames of reference (coordinate systems). For example, if a robot lifts an object, where is the object in reference to the robot's tool-tip and where is the object relative to the base of the robot?  
+
+A transformation matrix, as shown in Equation 2, defines the position ($ P_{B}^{A} $) and rotation ($ R_{B}^{A} $) of reference frame B with respect to  reference frame A \cite{briot2015homogeneous}. The transformation matrix can be used to convert a point in terms of reference frame B to an equivalent point in terms of reference frame A.
+
+\begin{equation}
+T_B^A = 
+    \begin{bmatrix}
+        R_B^A & & &P_B^A  \\
+        0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    =
+       \begin{bmatrix}
+        r11 & r12 & r13 &p14 \\
+        r21 & r22 & r23 &p24 \\
+        r31 & r32 & r33 &p34 \\
+        0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    \label{Transformation matrix}
+\end{equation}
+
+Euler angles \textgamma, \textbeta, and \textalpha.  correspond to rotations about the x, y, and z-axes respectively. The rotation matrix $ R_{B}^{A} $ in Equation 3 is the result of rotating about the x-axis, y-axis, and z-axis consecutively \cite{euler}.
+
+\scriptsize
+\begin{equation}
+       \begin{bmatrix}
+        c(\alpha)c(\beta) & c(\alpha)s(\beta)s(\gamma)-s(\alpha)c(\gamma) & c(\alpha)s(\beta)c(\gamma)+s(\alpha)s(\gamma) \\
+        s(\alpha)c(\beta) & s(\alpha)s(\beta)s(\gamma)+c(\alpha)c(\gamma) & s(\alpha)s(\beta)c(\gamma)-c(\alpha)s(\gamma)  \\
+        -s(\beta) & c(\beta)s(\gamma) & c(\beta)c(\gamma) \\
+    \end{bmatrix}
+    \label{rotation matrix}
+\end{equation}
+\normalsize
+
+\subsubsection{Changing Reference Frames}
+ The transformation matrix in Equation 2 was used to convert points in the Image Reference Frame (IRF) to the Base Reference Frame (BRF) of the robot. 
+
+As shown in Figure 6, to convert from the IRF to the BRF there is no rotation only a positional change. In this case, the rotation matrix $ R_{I}^{B} $ in Equation 3 is an identity matrix. The upper left corner (origin) of the image in physical space is the location of the IRF. Measurements were taken to determine the position $ P_{I}^{B} $ of the IRF with respect to the BRF. The resulting transformation matrix is defined in Equation 4.
+
+ \begin{equation}
+       \begin{bmatrix}
+        1 & 0 & 0 &90 \\
+        0 & 1 & 0 &-180 \\
+        0 & 0 & 1 &0 \\
+        0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    \label{Transformation matrix}
+\end{equation}
+
+
+
+
+
+
+
+
+
+
+
+
+\pagebreak
+\section{Experimental Validation}
+
+
+\section{Conclusion and Discussion}
+
+\section{References}
+\bibliographystyle{ieeetr}
+\bibliography{bibliography.bib}
+
+\end{document}
