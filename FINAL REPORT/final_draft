@@ -27,6 +27,9 @@ Carleton University, Ottawa, ON, Canada\par}
 {\large \today\par}
 \end{titlepage}
 
+\onecolumn % Switch to single-column mode for the ToC
+\tableofcontents
+\twocolumn % Switch back to two-column mode for the content
 
 \section{Introduction}
 
@@ -34,7 +37,7 @@ Carleton University, Ottawa, ON, Canada\par}
 \subsection{Current Challenges with Modern CABG Procedures}
 
 
-\subsection{Non-Robotic Solutions: Tissue Dyes}
+\subsection{Non-Robotic Solutions}
 
 
 
@@ -43,38 +46,44 @@ Carleton University, Ottawa, ON, Canada\par}
 Technology can be used to aid diagnosis of patients. For certain procedures, AI and medical devices can replace a specialist, reducing the time and cost for a patient to receive treatment \cite{shah2018iot}. The use of devices can allow for patient diagnosis and treatment in rural areas where a specialist is unavailable \cite{javed2007knowledge}. A robotic solution could lower costs, time, and resources for the procedure, while offering a higher level of precision and automation to tedious and difficult processes.
 
 \subsection{Proposed Laparoscopic Robotic Solution}
- \\
+
 
 
 
 \pagebreak
-\section{Materials}
+\section{The Engineering Project}
+\subsection{Health and Safety}
+\subsection{Engineering Professionalism}
+\subsection{Project Management}
+\subsection{Justification of Suitability for Degree Program}
+\subsubsection{Biomedical and Electrical Engineering}
+\subsubsection{Electrical Engineering}
+\subsubsection{Software Engineering}
+\subsection{Individual Contributions}
+\subsubsection{Project Contributions}
+\subsubsection{Report Contributions}
+
+\section{Project Overview}
+\subsection{Project Objectives}
+\subsection{Proposed Solution}
+
+\section{Design Goals}
+\subsection{Existing Design from Previous Capstone Group}
+\subsection{High-Level Design Objectives}
+
+\section{Mechanical Design Section}
+\subsection{Heart Simulator}
+\subsection{Device}
+\subsection{Gimbal, Stand, Support, Camera Frame}
+
+\section{Electrical Design Section}
+\subsection{Electrical Device Selection}
+\subsection{PID - omer}
+\subsubsection{ tuning}
+\subsubsection{ filtering}
 
 
-\subsection{Design of Device}
-
-
-
-
-%section2
-%introduce math/ theory / materials
-% a nice diagram
-
-\section{Methods and Theory}
-\subsection{ Image Processing}
-
-
-
-\subsubsection{Colour Recognition and Obstacle Determination}
-
-
-
-
-
-
-\subsection{Surgical Robotics}
-
-
+\section{Kinematics - joya}
 \subsubsection{The Homogeneous transform}
 An important concept in robotics is the ability to describe locations in space in terms of different frames of reference (coordinate systems). For example, if a robot lifts an object, where is the object in reference to the robot's tool-tip and where is the object relative to the base of the robot?  
 
@@ -123,6 +132,29 @@ As shown in Figure 6, to convert from the IRF to the BRF there is no rotation on
     \end{bmatrix}
     \label{Transformation matrix}
 \end{equation}
+\section{Simulation - joya}
+
+
+
+
+%section2
+%introduce math/ theory / materials
+% a nice diagram
+
+
+\section{ Image Processing - Patrick}
+
+\subsubsection{Colour Recognition and Obstacle Determination}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -136,8 +168,14 @@ As shown in Figure 6, to convert from the IRF to the BRF there is no rotation on
 
 
 \pagebreak
-\section{Experimental Validation}
+\section{Experimental Validation - Nathan}
 
+\section{Progress Analysis}
+\subsection{Project Budget and Funding - joya}
+\subsection{Project timeline}
+\subsection{Progress Variation}
+\subsection{Project Progress}
+\subsection{Future Iterations}
 
 \section{Conclusion and Discussion}
 
@@ -145,4 +183,5 @@ As shown in Figure 6, to convert from the IRF to the BRF there is no rotation on
 \bibliographystyle{ieeetr}
 \bibliography{bibliography.bib}
 
+\section{Appendices}
 \end{document}
