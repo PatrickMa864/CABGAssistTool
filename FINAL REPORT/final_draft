@@ -4,16 +4,29 @@
 \usepackage{amsmath}
 \usepackage{textgreek}
 
-\title{Handheld Surgical Robot for Coronary Artery Bypass Graft on a Beating Heart}
-\author{Omer Cebi, Nathan Chen, Joya Evans, Patrick Ma\\
-Systems and Computer Engineering, \\
-Carleton University, Ottawa, ON, Canada}
 
-\date{March 2025}
+
+
 
 \begin{document}
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\huge\bfseries Handheld Surgical Robot for Coronary Artery Bypass Graft on a Beating Heart\par}
+\vspace{2cm}
+{\Large Omer Cebi STD NUM\\ Nathan Chen STD NUM\\ Joya Evans STD NUM\\ Patrick Ma STD NUM\par}
+\vspace{1cm}
+{\large Supervisor: Dr. Carlos Rossa\par}
+\vspace{1cm}
+{\large A report submitted in partial fulfillment of the requirements\\ 
+of  SYSC-4907 Engineering Project \par}
+\vspace{1cm}
+{\large Department of Systems and Computer Engineering\\ Faculty of Engineering\\
+Carleton University, Ottawa, ON, Canada\par}
+\vfill
+{\large \today\par}
+\end{titlepage}
 
-\maketitle
 
 \section{Introduction}
 
