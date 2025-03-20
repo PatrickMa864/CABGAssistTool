@@ -1,9 +1,12 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{float}
 \usepackage{graphicx} % Required for inserting images
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb,amsthm}
 \usepackage{textgreek}
-
+\usepackage{minted}
+\usepackage{cleveref}
+\usepackage{booktabs}
+\usepackage{tabularx}
 
 
 
@@ -14,7 +17,7 @@
 \vspace*{2cm}
 {\huge\bfseries Handheld Surgical Robot for Coronary Artery Bypass Graft on a Beating Heart\par}
 \vspace{2cm}
-{\Large Omer Cebi STD NUM\\ Nathan Chen STD NUM\\ Joya Evans STD NUM\\ Patrick Ma STD NUM\par}
+{\Large Omer Cebi STD NUM\\ Nathan Chen STD NUM\\Joya Evans 101187404\\Patrick Ma STD NUM\par}
 \vspace{1cm}
 {\large Supervisor: Dr. Carlos Rossa\par}
 \vspace{1cm}
@@ -52,36 +55,47 @@ Technology can be used to aid diagnosis of patients. For certain procedures, AI 
 
 \pagebreak
 \section{The Engineering Project}
-\subsection{Health and Safety}
-\subsection{Engineering Professionalism}
+\subsection{Health and Safety - Joya}
+\subsection{Engineering Professionalism - Nathan}
 \subsection{Project Management}
 \subsection{Justification of Suitability for Degree Program}
-\subsubsection{Biomedical and Electrical Engineering}
-\subsubsection{Electrical Engineering}
-\subsubsection{Software Engineering}
+\subsubsection{Biomedical and Electrical Engineering- Joya}
+\subsubsection{Electrical Engineering - Nathan & Omer}
+\subsubsection{Software Engineering-Patrick}
 \subsection{Individual Contributions}
 \subsubsection{Project Contributions}
 \subsubsection{Report Contributions}
 
-\section{Project Overview}
+\section{Project Overview - joya (Nathan)}
 \subsection{Project Objectives}
+The objective of this project is to design, build, and test an actuated device to aid surgeons working on a beating heart. The system aims to enhance surgical precision by compensating for the natural motion of the beating heart, thereby improving patient outcomes and reducing surgical complications.
+
+A camera was used to provide image data that models a laparoscopic camera. The image data will be used to track a point of interest on the heart in real-time and maintain the desired distance between the heart and the tool. Then, the actuation system will control the tool-tip position such that it follows the heart motion and ensures a constant distance from the tool. One can now envision a robot-aided surgical system that first synchronizes the surgical robot with the beating heart motion and then allows the surgeon to operate on a seemingly motionless point on the heart. To test the device a heart simulator will be developed to model the motion of the heart. Progress for both measurable functional and non-functional requirements were tracked through the technical performance and the development timeline of the device and heart simulator.
+
 \subsection{Proposed Solution}
 
 \section{Design Goals}
 \subsection{Existing Design from Previous Capstone Group}
+The creation of the surgical device and heart simulator described in this report is a modified version from a previous capstone group that designed a Surgical Robot for CABG on a beating heart. The previous version of this device relied on a force sensor to maintain a constant tissue contact force with the heart. The design of this project is altered to use image data as the input that controls the actuation of the device. The device was also improved by adding a gimbal and stand to hold the device and control the position and orientation. Since, the device does not rely on contact, and instead the distance between the heart and the device can be adjusted, the heart simulator casing was improved to more accurately simulate a beating heart. 
+
 \subsection{High-Level Design Objectives}
+The initial goal comprises the mechanical designs for the surgical device, heart simulator and gimbal. Firstly, a gimbal must be designed to control the position and orientation of the surgical device in space. Next, the surgical device will be designed to fit onto the top of the gimbal. The heart simulator design must account for the physical features of an anatomical heart and the conditions during CABG surgery such as heart displacement and heart rate.
+The design of the surgical device includes a voice coil motor for actuation, a linear potentiometer for measuring displacement, a motor driver to provide needed current, a 3-axis gyro, and an arduino Mega. It is planned that the arduino will be placed inside the base of the gimbal, with wires connected from inside to protect the system's circuit from external interference. The gyro will be placed at the top of the gimbal to measure its 3-dimensional direction. The wires will then go into the actuator barrel where the voice coil motor and linear potentiometer are attached to each other. A ball bearing will be placed at the end of the barrel which will decrease the friction of the needle and provide smooth movement.
+The device should be able to operate from different angles by adapting to its initial direction and make computations based on this rotation to apply the desired force in the actuator, which requires precise calibration and computation. In addition, the design should allow for the point of operation on the heart to be adjustable, this adjustability can be critical for a variety of surgical operations since it provides versatility.
 
 \section{Mechanical Design Section}
 \subsection{Heart Simulator}
 \subsection{Device}
 \subsection{Gimbal, Stand, Support, Camera Frame}
 
-\section{Electrical Design Section}
+\section{Electrical Design Section - Omer}
 \subsection{Electrical Device Selection}
+gyro - Nathan
+potentiometer - nathan
 \subsection{PID - omer}
 \subsubsection{ tuning}
 \subsubsection{ filtering}
-
+-nathan
 
 \section{Kinematics - joya}
 \subsubsection{The Homogeneous transform}
