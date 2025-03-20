@@ -37,18 +37,18 @@ Carleton University, Ottawa, ON, Canada\par}
 \section{Introduction}
 
     
-\subsection{Current Challenges with Modern CABG Procedures}
+\subsection{Current Challenges with Modern CABG Procedures - Patrick}
 
 
-\subsection{Non-Robotic Solutions}
+\subsection{Non-Robotic Solutions - Omer}
 
 
 
 
-\subsection{Benefit of Robotic Solutions over Non-Robotic Solutions}
+\subsection{Benefit of Robotic Solutions over Non-Robotic Solutions - Nathan}
 Technology can be used to aid diagnosis of patients. For certain procedures, AI and medical devices can replace a specialist, reducing the time and cost for a patient to receive treatment \cite{shah2018iot}. The use of devices can allow for patient diagnosis and treatment in rural areas where a specialist is unavailable \cite{javed2007knowledge}. A robotic solution could lower costs, time, and resources for the procedure, while offering a higher level of precision and automation to tedious and difficult processes.
 
-\subsection{Proposed Laparoscopic Robotic Solution}
+\subsection{Proposed Laparoscopic Robotic Solution - Joya}
 
 
 
@@ -84,9 +84,9 @@ The design of the surgical device includes a voice coil motor for actuation, a l
 The device should be able to operate from different angles by adapting to its initial direction and make computations based on this rotation to apply the desired force in the actuator, which requires precise calibration and computation. In addition, the design should allow for the point of operation on the heart to be adjustable, this adjustability can be critical for a variety of surgical operations since it provides versatility.
 
 \section{Mechanical Design Section}
-\subsection{Heart Simulator}
-\subsection{Device}
-\subsection{Gimbal, Stand, Support, Camera Frame}
+\subsection{Heart Simulator - joya}
+\subsection{Device - nathan}
+\subsection{Gimbal, Stand, Support, Camera Frame - patrick}
 
 \section{Electrical Design Section - Omer}
 \subsection{Electrical Device Selection}
@@ -194,10 +194,10 @@ As shown in Figure 6, to convert from the IRF to the BRF there is no rotation on
 
 \section{Progress Analysis}
 \subsection{Project Budget and Funding - joya}
-\subsection{Project timeline}
-\subsection{Progress Variation}
-\subsection{Project Progress}
-\subsection{Future Iterations}
+\subsection{Project timeline - nathan}
+\subsection{Progress Variation - joya }
+\subsection{Project Progress - nathan & joya}
+\subsection{Future Iterations - patrick}
 
 \section{Conclusion and Discussion}
 
